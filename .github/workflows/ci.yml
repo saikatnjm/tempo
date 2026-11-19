@@ -50,6 +50,33 @@ jobs:
           tests/smoke
       - name: Load Tempo in a headless GNOME Shell and exercise every feature
         run: tests/smoke/in-container.sh tempo-test build/smoke
+      - name: Show what failed
+        if: always()
+        run: |
+          python3 - <<'EOF'
+          import json, os
+          out = 'build/smoke'
+          report = os.path.join(out, 'report.json')
+          if os.path.exists(report):
+              r = json.load(open(report))
+              failed = [c for c in r['checks'] if not c['ok']]
+              notes = r.get('notes', {})
+              print(f"::notice title=GNOME Shell {r['shell']}::{len(r['checks']) - len(failed)} of {len(r['checks'])} checks passed; "
+                    f"sound tested: {r.get('audio')}; menu bottom: {notes.get('menuBottom')}")
+              for c in failed:
+                  print(f"::error title=Failed check::{c['name']} ({c['detail'][:300]})")
+          else:
+              print('::error title=Smoke test::no report: the shell or the probe did not get far enough')
+          for name in ('errors.txt', 'shell.log'):
+              path = os.path.join(out, name)
+              if not os.path.exists(path):
+                  continue
+              lines = [l.strip() for l in open(path, errors='replace') if name == 'errors.txt' or 'JS ERROR' in l or 'rror:' in l or 'crashed' in l or 'exit status' in l]
+              for line in lines[:6]:
+                  print(f"::warning title={name}::{line[:300]}")
+              if name == 'errors.txt' and lines:
+                  break
+          EOF
       - uses: actions/upload-artifact@v4
         if: always()
         with:

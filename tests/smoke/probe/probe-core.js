@@ -262,10 +262,12 @@ class TempoProbe {
         this._check('menu: memory in use', /^[\d.]+ GiB \/ [\d.]+ GiB$/.test(value('In use')), value('In use'));
         this._check('menu: network speed', /^↓ [\d.]+ [KMG]iB\/s {3}↑ [\d.]+ [KMG]iB\/s$/.test(value('Speed')), value('Speed'));
         {
-            // The whole menu must fit on a small laptop screen (1366 x 768).
+            // The whole menu must fit on a small laptop screen; the test screen is 1366 x 768.
             const menu = this._button().menu.actor;
             const bottom = menu.get_transformed_position()[1] + menu.get_transformed_size()[1];
-            this._check('menu: fits on a 768-pixel-high screen', bottom <= 720, `bottom edge at ${Math.round(bottom)}`);
+            const screen = Main.layoutManager.primaryMonitor.height;
+            this._report.notes.menuBottom = `${Math.round(bottom)} of ${screen}`;
+            this._check('menu: fits on a small laptop screen', bottom <= screen, `bottom edge at ${Math.round(bottom)} on a ${screen}-pixel-high screen`);
         }
         const heading = rows.findIndex(r => r[0] === 'Busiest apps');
         const firstApp = heading >= 0 ? rows[heading + 1] : undefined;

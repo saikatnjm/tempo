@@ -53,7 +53,7 @@ if [ "${TEMPO_SMOKE_STYLE:-}" = docs ]; then
 fi
 
 # Newer GNOME versions dropped some of these options along with X11, so pass only what exists.
-options="--headless --virtual-monitor 1280x720"
+options="--headless --virtual-monitor 1366x768"
 for option in --wayland --no-x11; do
     if gnome-shell --help-all 2>/dev/null | grep -q -- "$option "; then options="$options $option"; fi
 done
