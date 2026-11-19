@@ -139,21 +139,21 @@ on any processor architecture. It does not run on KDE Plasma, Xfce, Cinnamon or 
 <!-- COMPAT:START -->
 | GNOME Shell | You have it on | Status |
 |---|---|---|
-| 42 | Ubuntu 22.04 LTS, Pop!_OS 22.04 | Tested on a real desktop and by the automated test |
-| 43 | Debian 12 | Same build as 42 |
-| 44 | Fedora 38 | Same build as 42 |
+| 42 | Ubuntu 22.04 LTS, Pop!_OS 22.04 | Tested on a real desktop and on every change |
+| 43 | Debian 12 | Tested on every change |
+| 44 | Fedora 38 | Same build as 42 and 43 |
 | 45 | Fedora 39, Ubuntu 23.10 | Same build as 46 |
-| 46 | Ubuntu 24.04 LTS | Tested by the automated test |
-| 47 | RHEL 10, AlmaLinux 10, Rocky Linux 10, Fedora 41 | Same build as 46 |
-| 48 | Debian 13, Fedora 42, Ubuntu 25.04 | Tested by the automated test |
-| 49 | Fedora 43, Ubuntu 25.10 | Same build as 48 |
-| 50 | Ubuntu 26.04 LTS, Fedora 44 | Same build as 48 |
+| 46 | Ubuntu 24.04 LTS | Tested on every change |
+| 47 | RHEL 10, AlmaLinux 10, Rocky Linux 10, Fedora 41 | Same build as 46 and 48 |
+| 48 | Debian 13, Fedora 42, Ubuntu 25.04 | Tested on every change |
+| 49 | Fedora 43, Ubuntu 25.10 | Tested on every change |
+| 50 | Ubuntu 26.04 LTS, Fedora 44 | Tested on every change |
 <!-- COMPAT:END -->
 
-"Tested by the automated test" means the extension was loaded in that GNOME Shell and every
-feature was exercised: all settings, the menu, all palettes, music bars with real captured
-sound, switching the extension off and on twice, and the settings window. The same test runs
-on every change (see the CI badge above).
+"Tested on every change" means that each time the code changes, GitHub loads the extension in
+that GNOME Shell and exercises every feature: all settings, the menu, all palettes, the music
+visuals with real captured sound, the hover card, switching the extension off and on, and the
+settings window. The CI badge at the top shows the latest result.
 
 Temperature needs a sensor the kernel exposes: AMD (`k10temp`), Intel (`coretemp`) and most ARM
 boards work out of the box. Where there is none, the temperature simply isn't shown.
