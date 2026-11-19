@@ -15,6 +15,7 @@ ENGINE=${CONTAINER_ENGINE:-docker}
 rm -rf "$OUT"
 mkdir -p "$OUT"
 chmod 777 "$OUT"
+OUT=$(CDPATH= cd -- "$OUT" && pwd)    # docker takes a relative path for a volume name
 # The sources are mounted read-only and copied inside, so the container cannot change them.
 # CONTAINER_CPUS=2 limits the container to two processor cores, like a small CI machine.
 "$ENGINE" run --rm ${CONTAINER_CPUS:+--cpus="$CONTAINER_CPUS"} -v "$ROOT:/src:ro" -v "$OUT:/out" "$IMAGE" sh -c '
