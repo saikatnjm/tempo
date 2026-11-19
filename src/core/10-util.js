@@ -3,7 +3,7 @@
 // How the code is put together: tools/build.sh concatenates src/shell/<variant>-header.js, every
 // file in src/core/ (in name order) and src/shell/<variant>-footer.js into one extension.js.
 // The header supplies the names used here: GLib, Gio, St, Clutter, Shell, Main, PanelMenu,
-// PopupMenu, Volume and _ (gettext). There are two variants because GNOME Shell 45 switched
+// PopupMenu, Volume, CHROME_PARAMS and _ (gettext). There are two variants because GNOME Shell 45 switched
 // extensions to ES modules; the code in src/core/ is identical for both.
 //
 // Nothing in this file touches the Shell UI, so it also runs in plain gjs (tests/unit).

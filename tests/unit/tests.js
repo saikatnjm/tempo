@@ -207,9 +207,12 @@ for (const bars of [1, 4, 16, 32]) {
     const memory = sampler.memory();
     check('memory is readable', memory !== null && memory.total > 0 && memory.available <= memory.total);
     equal('first network reading has nothing to compare with', sampler.network(10), null);
+    // Keep the processor busy for a fixed 0.2 s (not a fixed amount of work: slow machines
+    // would overrun the 0.9 s window this test is about).
     let x = 0;
-    for (let i = 0; i < 3e6; i++)
-        x += Math.sqrt(i);
+    const until = GLib.get_monotonic_time() + 200000;
+    while (GLib.get_monotonic_time() < until)
+        x += Math.sqrt(x + 1);
     GLib.usleep(120000);
     equal('a reading asked for too soon is refused', sampler.cpu(10), null);
     equal('a network reading asked for too soon is refused', sampler.network(10), null);

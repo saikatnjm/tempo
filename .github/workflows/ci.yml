@@ -28,8 +28,6 @@ jobs:
   smoke:
     name: GNOME ${{ matrix.gnome }} (${{ matrix.base }})
     runs-on: ubuntu-24.04
-    # "preview" rows are newer GNOME versions being tried out; they report but do not fail the run.
-    continue-on-error: ${{ matrix.preview == true }}
     strategy:
       fail-fast: false
       matrix:
@@ -38,8 +36,8 @@ jobs:
           - {gnome: "43", base: "debian:12", dockerfile: Dockerfile.apt}
           - {gnome: "46", base: "ubuntu:24.04", dockerfile: Dockerfile.apt}
           - {gnome: "48", base: "debian:13", dockerfile: Dockerfile.apt}
-          - {gnome: "49", base: "fedora:43", dockerfile: Dockerfile.dnf, preview: true}
-          - {gnome: "50", base: "ubuntu:26.04", dockerfile: Dockerfile.apt, preview: true}
+          - {gnome: "49", base: "fedora:43", dockerfile: Dockerfile.dnf}
+          - {gnome: "50", base: "ubuntu:26.04", dockerfile: Dockerfile.apt}
     steps:
       - uses: actions/checkout@v4
       - name: Build a container with this GNOME Shell

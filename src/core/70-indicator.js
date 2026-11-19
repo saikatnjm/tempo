@@ -700,7 +700,7 @@ class TempoIndicator {
                     this._tip.add_child(line);
                     this._tipRows.push({line, row});
                 }
-                Main.layoutManager.addChrome(this._tip, {affectsInputRegion: false});
+                Main.layoutManager.addChrome(this._tip, {...CHROME_PARAMS});
             }
             this._tipRows.forEach(({line, row}, i) => {
                 line.visible = i < list.length;
@@ -937,10 +937,7 @@ class TempoIndicator {
         if (this._strip === null) {
             this._strip = new StripWidget(BAR_COUNT);
             // Chrome that tracks fullscreen: it hides with the top bar under a fullscreen video.
-            Main.layoutManager.addChrome(this._strip.actor, {
-                affectsInputRegion: false,
-                trackFullscreen: true,
-            });
+            Main.layoutManager.addChrome(this._strip.actor, {...CHROME_PARAMS, trackFullscreen: true});
             const panelBox = Main.layoutManager.panelBox;
             Main.uiGroup.set_child_above_sibling(this._strip.actor, panelBox);
             this._panelBoxId = panelBox.connect('notify::allocation', () => this._placeStrip());

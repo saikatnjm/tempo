@@ -12,4 +12,7 @@ const PopupMenu = imports.ui.popupMenu;
 const Volume = imports.ui.status.volume;
 const Me = ExtensionUtils.getCurrentExtension();
 const _ = ExtensionUtils.gettext;
+// Extra options for Main.layoutManager.addChrome(): keep Tempo's floating parts out of the input
+// region, so they never catch clicks meant for windows underneath.
+const CHROME_PARAMS = {affectsInputRegion: false};
 
