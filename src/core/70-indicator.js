@@ -1,0 +1,991 @@
+// ---- indicator: the top-bar button, its menu, and the glue between all the parts -------------
+//
+// Cost model, in one place:
+//  * System readings: one low-priority timer (every `refresh-interval` seconds, default 3) reads
+//    three small /proc files and one sensor. If nothing is shown and the menu is closed, the
+//    timer is removed altogether.
+//  * Drawing: a ring or label is only repainted when the value it shows changes.
+//  * Menu details (fan, disk temperature, busiest apps, what is playing) are read only while
+//    the menu is open; the hover tip asks the players only when the pointer rests on the bars.
+//  * Music visuals (the small bars, the light strip along the top bar, or both): nothing runs
+//    until a media player reports "Playing"; then one small recorder process runs until
+//    shortly after it pauses, and not at all while a fullscreen window hides the top bar.
+//    Bars and strip are fed from the same frames.
+
+const BAR_COUNT = 10;
+const REFRESH_MIN_S = 1;
+const REFRESH_MAX_S = 10;
+const FPS_MIN = 5;
+const FPS_MAX = 30;
+const STOP_GRACE_MS = 4000;          // keep listening across track changes and buffering
+const SILENCE_HIDE_MS = 2500;        // hide the bars after this much silence
+const SINK_CHANGE_DELAY_MS = 600;    // let the sound server settle after an output switch
+const CAPTURE_RETRY_MS = 4000;
+const CAPTURE_MAX_FAILURES = 3;
+const MENU_FOLLOWUP_MS = 1000;       // second reading shortly after the menu opens
+const TIP_DELAY_MS = 300;            // how long the pointer must rest on the bars
+const FADE_MS = 200;
+const TEMP_WARM_C = 75;
+const TEMP_HOT_C = 85;
+const TEMP_MISSES_BEFORE_RESCAN = 3;
+const FAN_MAX_RPM = 20000;           // anything above is a bogus reading
+// Candidates for the widest network value: every digit three times, and each unit.
+const NET_WIDEST_SAMPLES = ['000M', '111M', '222M', '333M', '444M', '555M', '666M', '777M', '888M',
+    '999M', '888K', '888G'];
+const SYSTEM_MONITOR_APPS = [
+    'gnome-system-monitor.desktop',
+    'org.gnome.SystemMonitor.desktop',
+    'gnome-system-monitor_gnome-system-monitor.desktop',
+    'net.nokyan.Resources.desktop',
+    'io.missioncenter.MissionCenter.desktop',
+];
+
+class TempoIndicator {
+    /**
+     * @param {object} params
+     * @param {Gio.Settings} params.settings
+     * @param {string} params.path - the extension's folder
+     * @param {string} params.uuid
+     * @param {function(): void} params.openPreferences
+     */
+    constructor({settings, path, uuid, openPreferences}) {
+        this._settings = settings;
+        this._openPreferences = openPreferences;
+        this._destroyed = false;
+        this._cancellable = new Gio.Cancellable();
+        this._timers = new Map();
+        this._refreshId = 0;
+        this._refreshInterval = 0;
+
+        this._sampler = new Sampler();
+        this._sensors = findSensors();
+        this._sensorMisses = 0;
+        this._sensorRescanAt = TEMP_MISSES_BEFORE_RESCAN;
+        this._fanIndex = 0;
+        this._procs = new ProcScanner(this._sampler.cpuCount, list => this._showProcesses(list));
+
+        this._cpu = null;
+        this._memory = null;
+        this._network = null;
+        this._celsius = null;
+        this._tempClass = '';
+        this._ghz = '';
+        this._netSlotWidth = 0;
+        this._sizingNet = false;
+
+        this._players = null;
+        this._capture = null;
+        this._playing = false;
+        this._captureFailures = 0;
+        this._soundVisible = false;      // there is sound to show right now
+        this._barsShown = false;         // the small bars are on screen
+        this._musicStyle = 'bars';       // 'bars', 'strip' or 'both'
+        this._fps = 0;
+        this._palette = null;
+        this._strip = null;
+        this._panelBoxId = 0;
+        this._tip = null;
+        this._tipRows = [];
+        this._nowPlaying = [];
+
+        this._buildButton(path);
+        this._buildMenu();
+        this._applySensors();
+        Main.panel.addToStatusArea(uuid, this._button, 0, 'right');
+
+        this._mixer = null;
+        this._mixerId = 0;
+        try {
+            this._mixer = Volume.getMixerControl();
+            this._mixerId = this._mixer.connect('default-sink-changed', () => this._onOutputChanged());
+        } catch (e) {
+            this._mixer = null;      // no mixer: the bars simply don't follow output switches
+        }
+
+        // While a fullscreen window covers the top bar nobody can see the bars: don't listen.
+        this._fullscreenId = global.display.connect('in-fullscreen-changed',
+            () => this._onFullscreenChanged());
+
+        this._settingsId = this._settings.connect('changed', () => this._applySettings());
+        this._applySettings();
+        // Rates need two readings; take the second one soon so the rings fill in right away.
+        this._setTimer('warmup', MENU_FOLLOWUP_MS, () => this._refresh());
+    }
+
+    destroy() {
+        // Set first: destroying the button closes an open menu, and nothing that reacts to that
+        // may start a new timer or process.
+        this._destroyed = true;
+        this._settings.disconnect(this._settingsId);
+        if (this._refreshId)
+            GLib.source_remove(this._refreshId);
+        this._refreshId = 0;
+        for (const id of this._timers.values())
+            GLib.source_remove(id);
+        this._timers.clear();
+        this._cancellable.cancel();
+        this._procs.cancel();
+        if (this._players !== null)
+            this._players.destroy();
+        this._players = null;
+        if (this._capture !== null)
+            this._capture.stop();
+        this._capture = null;
+        if (this._mixer !== null && this._mixerId)
+            this._mixer.disconnect(this._mixerId);
+        this._mixer = null;
+        global.display.disconnect(this._fullscreenId);
+        this._removeStrip();
+        this._removeTip();
+        this._bars.actor.remove_all_transitions();
+        this._button.destroy();
+        this._button = null;
+    }
+
+    // ---- building ----------------------------------------------------------------------------
+
+    _buildButton(path) {
+        this._button = new PanelMenu.Button(0.5, 'Tempo', false);
+        this._button.add_style_class_name('tempo-button');
+
+        const box = new St.BoxLayout({style_class: 'tempo-box'});
+        this._bars = new BarsWidget(BAR_COUNT);
+        this._bars.actor.connect('notify::hover', () => this._onBarsHover());
+        this._cpuRing = new RingWidget();
+        this._memoryRing = new RingWidget();
+        this._tempLabel = new St.Label({
+            text: '',
+            style_class: 'tempo-temp',
+            y_align: Clutter.ActorAlign.CENTER,
+            visible: false,
+        });
+        // Network speed as two small lines, download over upload, with the numbers right-aligned
+        // in a slot of fixed width: narrow, and nothing in the top bar shuffles sideways as
+        // traffic comes and goes.
+        this._netBox = new St.BoxLayout({style_class: 'tempo-net', y_align: Clutter.ActorAlign.CENTER});
+        this._netBox.layout_manager.orientation = Clutter.Orientation.VERTICAL;
+        this._netSlots = [];
+        const line = arrow => {
+            const value = new St.Label({
+                text: '0K',
+                style_class: 'tempo-net-value',
+                x_align: Clutter.ActorAlign.END,
+                y_align: Clutter.ActorAlign.CENTER,
+            });
+            const bin = new St.Bin({style_class: 'tempo-net-slot', child: value});
+            const row = new St.BoxLayout({style_class: 'tempo-net-line'});
+            row.add_child(new St.Label({
+                text: arrow,
+                style_class: 'tempo-net-arrow',
+                y_align: Clutter.ActorAlign.CENTER,
+            }));
+            row.add_child(bin);
+            this._netBox.add_child(row);
+            this._netSlots.push({bin, value});
+            return value;
+        };
+        this._netDown = line('↓');
+        this._netUp = line('↑');
+        // The font is only known once the theme has been applied, and can change with it.
+        this._netDown.connect('style-changed', () => this._sizeNetSlots());
+        // Shown only when everything else is switched off, so the menu stays reachable.
+        this._icon = new St.Icon({
+            gicon: Gio.icon_new_for_string(`${path}/icons/tempo-symbolic.svg`),
+            style_class: 'system-status-icon',
+            visible: false,
+        });
+        box.add_child(this._bars.actor);
+        box.add_child(this._cpuRing.actor);
+        box.add_child(this._memoryRing.actor);
+        box.add_child(this._tempLabel);
+        box.add_child(this._netBox);
+        box.add_child(this._icon);
+        this._button.add_child(box);
+    }
+
+    // Make each network slot exactly as wide as the widest value it can ever show ("888M"),
+    // in the font actually in use. The label measures itself: the sample texts are set and
+    // taken away again within one call, so they are never painted. Until this has run, the
+    // stylesheet's width applies.
+    _sizeNetSlots() {
+        if (this._sizingNet)
+            return;
+        this._sizingNet = true;
+        try {
+            const label = this._netDown;
+            const shown = label.text;
+            let widest = 0;
+            for (const sample of NET_WIDEST_SAMPLES) {
+                label.text = sample;
+                widest = Math.max(widest, label.get_preferred_width(-1)[1]);
+            }
+            label.text = shown;
+            widest = Math.ceil(widest);
+            if (widest > 0 && widest !== this._netSlotWidth) {
+                this._netSlotWidth = widest;
+                for (const {bin} of this._netSlots)
+                    bin.set_width(widest);
+            }
+        } catch (e) {
+            // keep the stylesheet's width
+        }
+        this._sizingNet = false;
+    }
+
+    _addHeading(text) {
+        const item = new PopupMenu.PopupSeparatorMenuItem(text);
+        item.add_style_class_name('tempo-heading');
+        this._button.menu.addMenuItem(item);
+        return item;
+    }
+
+    _addRow(title) {
+        const item = new PopupMenu.PopupBaseMenuItem({
+            reactive: false,
+            can_focus: false,
+            style_class: 'tempo-row',
+        });
+        const name = new St.Label({text: title, x_expand: true, style_class: 'tempo-key'});
+        const value = new St.Label({text: '–', style_class: 'tempo-value'});
+        item.add_child(name);
+        item.add_child(value);
+        this._button.menu.addMenuItem(item);
+        return {item, name, value};
+    }
+
+    _buildMenu() {
+        const menu = this._button.menu;
+        menu.box.add_style_class_name('tempo-menu');
+        const rows = this._rows = {};
+
+        // What is playing, and where. Only there while something plays; a click goes to the app.
+        this._playingItems = [];
+        for (let i = 0; i < NOW_PLAYING_MAX; i++) {
+            const item = new PopupMenu.PopupBaseMenuItem({style_class: 'tempo-playing'});
+            const row = new PlayingRow();
+            item.add_child(row.icon);
+            item.add_child(row.text);
+            item.connect('activate', () => this._goToPlayer(i));
+            menu.addMenuItem(item);
+            this._playingItems.push({item, row});
+        }
+        this._showNowPlaying([]);
+
+        this._addHeading(_('Processor'));
+        rows.cpu = this._addRow(_('Usage'));
+        rows.load = this._addRow(_('Load average'));
+
+        this._addHeading(_('Memory'));
+        rows.memory = this._addRow(_('In use'));
+        rows.swap = this._addRow(_('Swap'));
+
+        this._tempHeading = this._addHeading(_('Temperature'));
+        rows.temperature = this._addRow(_('Processor'));
+        rows.gpu = this._addRow(_('Graphics'));
+        rows.disk = this._addRow(_('Disk'));
+        rows.fan = this._addRow(_('Fan'));
+
+        this._addHeading(_('Network'));
+        rows.network = this._addRow(_('Speed'));
+
+        this._addHeading(_('Busiest apps'));
+        this._appRows = [];
+        for (let i = 0; i < TOP_PROCESSES; i++)
+            this._appRows.push(this._addRow(''));
+
+        menu.addMenuItem(new PopupMenu.PopupSeparatorMenuItem());
+        this._musicSwitch = new PopupMenu.PopupSwitchMenuItem(_('Music visuals'), false);
+        // Newer GNOME versions also emit "toggled" when the switch is set from code.
+        this._musicSwitch.connect('toggled', (_item, state) => {
+            if (state !== this._settings.get_boolean('music-visuals'))
+                this._settings.set_boolean('music-visuals', state);
+        });
+        menu.addMenuItem(this._musicSwitch);
+        this._musicHint = new PopupMenu.PopupMenuItem(_('Music visuals need pulseaudio-utils'),
+            {reactive: false, can_focus: false});
+        this._musicHint.label.add_style_class_name('tempo-hint');
+        this._musicHint.visible = false;
+        menu.addMenuItem(this._musicHint);
+
+        this._monitorItem = menu.addAction(_('Open System Monitor'), () => {
+            const app = this._findSystemMonitor();
+            if (app !== null)
+                app.activate();
+        });
+        menu.addAction(_('Settings'), () => this._openPreferences());
+
+        menu.connect('open-state-changed', (_menu, open) => this._onMenuToggled(open));
+    }
+
+    _findSystemMonitor() {
+        const apps = Shell.AppSystem.get_default();
+        for (const id of SYSTEM_MONITOR_APPS) {
+            const app = apps.lookup_app(id);
+            if (app)
+                return app;
+        }
+        return null;
+    }
+
+    // Show only the rows this machine actually has sensors for.
+    _applySensors() {
+        const s = this._sensors;
+        const rows = this._rows;
+        rows.temperature.item.visible = s.cpu !== null;
+        rows.gpu.item.visible = s.gpu !== null;
+        rows.disk.item.visible = s.disk !== null;
+        rows.fan.item.visible = s.fans.length > 0;
+        this._tempHeading.visible = s.cpu !== null || s.gpu !== null || s.disk !== null ||
+            s.fans.length > 0;
+    }
+
+    // ---- timers ------------------------------------------------------------------------------
+
+    _setTimer(name, milliseconds, callback) {
+        this._clearTimer(name);
+        if (this._destroyed)
+            return;
+        this._timers.set(name, GLib.timeout_add(GLib.PRIORITY_DEFAULT, milliseconds, () => {
+            this._timers.delete(name);
+            try {
+                callback();
+            } catch (e) {
+                console.error(`Tempo: ${e}\n${e.stack ?? ''}`);
+            }
+            return GLib.SOURCE_REMOVE;
+        }));
+    }
+
+    _clearTimer(name) {
+        const id = this._timers.get(name);
+        if (id !== undefined) {
+            GLib.source_remove(id);
+            this._timers.delete(name);
+        }
+    }
+
+    // The refresh timer exists only while there is something to refresh.
+    _syncRefreshTimer() {
+        const needed = !this._destroyed && (this._showCpu || this._showMemory ||
+            this._showNetwork || (this._showTemperature && this._sensors.cpu !== null) ||
+            this._button.menu.isOpen);
+        if (needed && this._refreshId && this._refreshInterval === this._interval)
+            return;
+        if (this._refreshId) {
+            GLib.source_remove(this._refreshId);
+            this._refreshId = 0;
+        }
+        if (!needed)
+            return;
+        this._refreshInterval = this._interval;
+        this._refreshId = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, this._interval, () => {
+            this._refresh();
+            return GLib.SOURCE_CONTINUE;
+        });
+    }
+
+    // ---- settings ----------------------------------------------------------------------------
+
+    _applySettings() {
+        if (this._destroyed)
+            return;
+        const s = this._settings;
+        this._showCpu = s.get_boolean('show-cpu');
+        this._showMemory = s.get_boolean('show-memory');
+        this._showTemperature = s.get_boolean('show-temperature');
+        this._showNetwork = s.get_boolean('show-network');
+        this._fahrenheit = s.get_string('temperature-unit') === 'fahrenheit';
+        this._interval = clamp(s.get_int('refresh-interval'), REFRESH_MIN_S, REFRESH_MAX_S);
+
+        const name = s.get_string('palette');
+        this._palette = PALETTES.has(name) ? PALETTES.get(name) : PALETTES.get(DEFAULT_PALETTE);
+        this._cpuRing.setColor(this._palette ? this._palette.cpu : null);
+        this._memoryRing.setColor(this._palette ? this._palette.memory : null);
+        this._bars.setPalette(this._palette ? this._palette.bars : null);
+
+        this._syncVisibility();
+        this._syncMusic();
+        this._syncStrip();
+        this._syncMusicActors();
+        this._syncRefreshTimer();
+        if (this._celsius !== null)
+            this._showTemperatureValue(this._celsius);
+        this._refresh();
+    }
+
+    _syncVisibility() {
+        // The temperature only appears once there is a reading to show.
+        const temperature = this._showTemperature && this._sensors.cpu !== null &&
+            this._celsius !== null;
+        this._cpuRing.actor.visible = this._showCpu;
+        this._memoryRing.actor.visible = this._showMemory;
+        this._tempLabel.visible = temperature;
+        this._netBox.visible = this._showNetwork;
+        this._icon.visible = !(this._showCpu || this._showMemory || temperature ||
+            this._showNetwork || this._barsShown);
+    }
+
+    // ---- system readings ---------------------------------------------------------------------
+
+    _refresh() {
+        if (this._destroyed)
+            return;
+        try {
+            this._sample();
+        } catch (e) {
+            console.error(`Tempo: ${e}\n${e.stack ?? ''}`);
+        }
+    }
+
+    _sample() {
+        const menuOpen = this._button.menu.isOpen;
+        const maxAge = this._interval * 3 + 2;
+
+        if (this._showCpu || menuOpen) {
+            const cpu = this._sampler.cpu(maxAge);
+            if (cpu !== null) {
+                this._cpu = cpu;
+                this._cpuRing.set(cpu);
+            }
+        }
+        if (this._showMemory || menuOpen) {
+            const memory = this._sampler.memory();
+            if (memory !== null) {
+                this._memory = memory;
+                this._memoryRing.set((memory.total - memory.available) / memory.total);
+            }
+        }
+        if (this._showNetwork || menuOpen) {
+            const network = this._sampler.network(maxAge);
+            if (network !== null) {
+                this._network = network;
+                setLabel(this._netDown, formatRateCompact(network.down));
+                setLabel(this._netUp, formatRateCompact(network.up));
+            }
+        }
+        if ((this._showTemperature || menuOpen) && this._sensors.cpu !== null) {
+            readTextAsync(this._sensors.cpu, this._cancellable,
+                text => this._onTemperature(text));
+        }
+        if (menuOpen)
+            this._refreshMenu();
+    }
+
+    _onTemperature(text) {
+        const milli = text === null ? NaN : parseInt(text, 10);
+        if (!Number.isFinite(milli)) {
+            this._sensorMisses++;
+            if (this._sensorMisses === TEMP_MISSES_BEFORE_RESCAN && this._celsius !== null) {
+                // The sensor stopped answering: better no number than a stale one.
+                this._celsius = null;
+                setLabel(this._rows.temperature.value, '–');
+                this._syncVisibility();
+            }
+            // Sensor numbering can change when a driver reloads, so look again; less and less
+            // often if that doesn't help.
+            if (this._sensorMisses >= this._sensorRescanAt) {
+                this._sensorRescanAt *= 4;
+                this._sensors = findSensors();
+                this._applySensors();
+                this._syncVisibility();
+                this._syncRefreshTimer();
+            }
+            return;
+        }
+        this._sensorMisses = 0;
+        this._sensorRescanAt = TEMP_MISSES_BEFORE_RESCAN;
+        const first = this._celsius === null;
+        this._celsius = milli / 1000;
+        this._showTemperatureValue(this._celsius);
+        if (first)
+            this._syncVisibility();
+    }
+
+    _showTemperatureValue(celsius) {
+        setLabel(this._tempLabel, formatTemperature(celsius, this._fahrenheit, false));
+        const cls = celsius >= TEMP_HOT_C ? 'tempo-hot' : celsius >= TEMP_WARM_C ? 'tempo-warm' : '';
+        if (cls !== this._tempClass) {
+            if (this._tempClass)
+                this._tempLabel.remove_style_class_name(this._tempClass);
+            if (cls)
+                this._tempLabel.add_style_class_name(cls);
+            this._tempClass = cls;
+        }
+        setLabel(this._rows.temperature.value, formatTemperature(celsius, this._fahrenheit, true));
+    }
+
+    // ---- menu --------------------------------------------------------------------------------
+
+    _onMenuToggled(open) {
+        if (this._destroyed)
+            return;
+        if (!open) {
+            this._clearTimer('followup');
+            this._procs.cancel();
+            this._syncRefreshTimer();
+            return;
+        }
+        this._hideTip();
+        // Readings that weren't being kept up to date are stale: show a placeholder instead.
+        if (!this._showCpu)
+            this._cpu = null;
+        if (!this._showNetwork)
+            this._network = null;
+        this._procs.reset();
+        this._showProcesses(null);
+        this._monitorItem.visible = this._findSystemMonitor() !== null;
+        this._syncRefreshTimer();
+        this._refresh();
+        this._setTimer('followup', MENU_FOLLOWUP_MS, () => this._refresh());
+    }
+
+    _refreshMenu() {
+        const rows = this._rows;
+
+        // "26%  ·  1.73 GHz" where the kernel reports the clock speed, just "26%" elsewhere.
+        const usage = this._cpu === null ? '…' : `${Math.round(this._cpu * 100)}%`;
+        setLabel(rows.cpu.value, this._ghz ? `${usage}  ·  ${this._ghz}` : usage);
+        readTextAsync('/proc/cpuinfo', this._cancellable, text => {
+            const mhz = parseCpuMhz(text);
+            this._ghz = mhz === null ? '' : `${(mhz / 1000).toFixed(2)} GHz`;
+            setLabel(rows.cpu.value, this._ghz ? `${usage}  ·  ${this._ghz}` : usage);
+        });
+        const load = (readText('/proc/loadavg') ?? '').split(' ');
+        setLabel(rows.load.value, load.length >= 3 ? load.slice(0, 3).join('  ') : '–');
+
+        const memory = this._memory;
+        if (memory !== null) {
+            setLabel(rows.memory.value,
+                `${formatGiB(memory.total - memory.available)} / ${formatGiB(memory.total)}`);
+            setLabel(rows.swap.value, memory.swapTotal > 0
+                ? `${formatGiB(memory.swapTotal - memory.swapFree)} / ${formatGiB(memory.swapTotal)}`
+                : _('Off'));
+        }
+
+        const network = this._network;
+        setLabel(rows.network.value, network === null ? '…'
+            : `↓ ${formatRateLong(network.down)}   ↑ ${formatRateLong(network.up)}`);
+
+        for (const key of ['gpu', 'disk']) {
+            const path = this._sensors[key];
+            if (path === null)
+                continue;
+            readTextAsync(path, this._cancellable, text => {
+                const milli = text === null ? NaN : parseInt(text, 10);
+                setLabel(rows[key].value, Number.isFinite(milli)
+                    ? formatTemperature(milli / 1000, this._fahrenheit, true) : '–');
+            });
+        }
+        this._readFan(this._fanIndex, 0);
+        this._procs.scan();
+        this._updateNowPlaying();
+    }
+
+    // Some drivers report nonsense (65280 RPM) all the time, and any sensor can glitch once.
+    // So: start with the sensor that worked last time and walk on until one makes sense.
+    _readFan(index, tried) {
+        const fans = this._sensors.fans;
+        if (fans.length === 0)
+            return;
+        readTextAsync(fans[index % fans.length], this._cancellable, text => {
+            const rpm = text === null ? NaN : parseInt(text, 10);
+            if (!Number.isFinite(rpm) || rpm < 0 || rpm > FAN_MAX_RPM) {
+                if (tried + 1 < fans.length)
+                    this._readFan(index + 1, tried + 1);
+                else
+                    setLabel(this._rows.fan.value, '–');
+                return;
+            }
+            this._fanIndex = index % fans.length;
+            setLabel(this._rows.fan.value, rpm === 0 ? _('Stopped') : `${rpm} RPM`);
+        });
+    }
+
+    _showProcesses(list) {
+        for (let i = 0; i < this._appRows.length; i++) {
+            const row = this._appRows[i];
+            const entry = list === null ? undefined : list[i];
+            if (entry !== undefined) {
+                setLabel(row.name, entry.name);
+                setLabel(row.value, `${(entry.share * 100).toFixed(1)}%`);
+            } else {
+                setLabel(row.name, list === null && i === 0 ? _('Measuring…') : '');
+                setLabel(row.value, '');
+            }
+        }
+    }
+
+    // ---- what is playing, and where ----------------------------------------------------------
+
+    // The installed app behind a player, for its icon, its proper name, and to go to it.
+    _findPlayerApp(entry) {
+        const apps = Shell.AppSystem.get_default();
+        if (entry.desktopEntry) {
+            const app = apps.lookup_app(`${entry.desktopEntry}.desktop`);
+            if (app)
+                return app;
+        }
+        // "org.mpris.MediaPlayer2.brave.instance123" -> "brave"
+        const token = entry.bus.slice(MPRIS_PREFIX.length).split('.')[0].toLowerCase();
+        if (!token)
+            return null;
+        const exact = apps.lookup_app(`${token}.desktop`);
+        if (exact)
+            return exact;
+        for (const app of apps.get_running()) {
+            if (app.get_id().toLowerCase().includes(token))
+                return app;
+        }
+        return null;
+    }
+
+    _updateNowPlaying() {
+        if (this._players === null) {
+            this._showNowPlaying([]);
+            return;
+        }
+        this._players.describe(list => {
+            if (!this._destroyed)
+                this._showNowPlaying(list);
+        });
+    }
+
+    _showNowPlaying(list) {
+        this._nowPlaying = list.map(entry => ({entry, app: this._findPlayerApp(entry)}));
+        this._playingItems.forEach(({item, row}, i) => {
+            const playing = this._nowPlaying[i];
+            item.visible = playing !== undefined;
+            if (playing !== undefined)
+                row.fill(playing.entry, playing.app);
+        });
+    }
+
+    _goToPlayer(index) {
+        const playing = this._nowPlaying[index];
+        if (playing === undefined)
+            return;
+        if (playing.app)
+            playing.app.activate();
+        else if (this._players !== null)
+            this._players.raise(playing.entry.bus);
+    }
+
+    // Resting the pointer on the music bars shows what is playing, and in which app.
+    _onBarsHover() {
+        if (this._destroyed)
+            return;
+        if (this._bars.actor.hover && this._barsShown && !this._button.menu.isOpen) {
+            this._setTimer('tip', TIP_DELAY_MS, () => this._showTip());
+        } else {
+            this._clearTimer('tip');
+            this._hideTip();
+        }
+    }
+
+    _showTip() {
+        if (this._players === null || !this._bars.actor.hover || this._button.menu.isOpen)
+            return;
+        this._players.describe(list => {
+            if (this._destroyed || list.length === 0 || !this._bars.actor.hover ||
+                this._button.menu.isOpen)
+                return;
+            if (this._tip === null) {
+                this._tip = new St.BoxLayout({style_class: 'tempo-tip', reactive: false});
+                this._tip.layout_manager.orientation = Clutter.Orientation.VERTICAL;
+                for (let i = 0; i < NOW_PLAYING_MAX; i++) {
+                    const row = new PlayingRow();
+                    const line = new St.BoxLayout({style_class: 'tempo-playing'});
+                    line.add_child(row.icon);
+                    line.add_child(row.text);
+                    this._tip.add_child(line);
+                    this._tipRows.push({line, row});
+                }
+                Main.layoutManager.addChrome(this._tip, {affectsInputRegion: false});
+            }
+            this._tipRows.forEach(({line, row}, i) => {
+                line.visible = i < list.length;
+                if (i < list.length)
+                    row.fill(list[i], this._findPlayerApp(list[i]));
+            });
+
+            // Centred under the bars, kept on the screen.
+            const tip = this._tip;
+            const bars = this._bars.actor;
+            const [x, y] = bars.get_transformed_position();
+            const [barsWidth] = bars.get_transformed_size();
+            const [, width] = tip.get_preferred_width(-1);
+            const monitor = Main.layoutManager.findMonitorForActor(this._button) ??
+                Main.layoutManager.primaryMonitor;
+            const panelBox = Main.layoutManager.panelBox;
+            const margin = 6;
+            let left = Math.round(x + barsWidth / 2 - width / 2);
+            if (monitor) {
+                left = Math.max(monitor.x + margin,
+                    Math.min(left, monitor.x + monitor.width - width - margin));
+            }
+            const top = Math.max(panelBox.y + panelBox.height, Math.round(y)) + margin;
+            tip.set_position(left, top);
+            Main.uiGroup.set_child_above_sibling(tip, null);
+            tip.remove_all_transitions();
+            tip.opacity = 0;
+            tip.show();
+            tip.ease({opacity: 255, duration: FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+        });
+    }
+
+    _hideTip() {
+        const tip = this._tip;
+        if (tip === null || !tip.visible)
+            return;
+        tip.remove_all_transitions();
+        tip.ease({
+            opacity: 0,
+            duration: FADE_MS / 2,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+            onComplete: () => tip.hide(),
+        });
+    }
+
+    _removeTip() {
+        if (this._tip === null)
+            return;
+        this._tip.remove_all_transitions();
+        Main.layoutManager.removeChrome(this._tip);
+        this._tip.destroy();
+        this._tip = null;
+        this._tipRows = [];
+    }
+
+    // ---- music visuals -----------------------------------------------------------------------
+
+    _syncMusic() {
+        const wanted = this._settings.get_boolean('music-visuals');
+        this._musicStyle = this._settings.get_string('music-style');
+        const fps = clamp(this._settings.get_int('music-fps'), FPS_MIN, FPS_MAX);
+        const available = AudioCapture.available();
+        this._musicSwitch.setToggleState(wanted);
+        this._musicHint.visible = wanted && !available;
+
+        if (!wanted || !available) {
+            if (this._players !== null)
+                this._players.destroy();
+            this._players = null;
+            this._playing = false;
+            this._clearTimer('grace');
+            this._clearTimer('retry');
+            this._stopCapture();
+            this._showNowPlaying([]);
+            return;
+        }
+        if (fps !== this._fps) {
+            this._fps = fps;
+            if (this._capture !== null) {
+                this._stopCapture();
+                this._startCapture();
+            }
+        }
+        if (this._players === null) {
+            this._captureFailures = 0;
+            this._players = new PlayerWatch(playing => this._onPlaying(playing));
+        }
+    }
+
+    _onPlaying(playing) {
+        this._playing = playing;
+        if (playing) {
+            this._clearTimer('grace');
+            this._captureFailures = 0;
+            this._startCapture();
+        } else {
+            this._clearTimer('retry');
+            if (this._capture !== null)
+                this._setTimer('grace', STOP_GRACE_MS, () => this._stopCapture());
+        }
+        if (this._button.menu.isOpen)
+            this._updateNowPlaying();
+    }
+
+    _topBarHidden() {
+        const monitor = Main.layoutManager.primaryMonitor;
+        return Boolean(monitor && monitor.inFullscreen);
+    }
+
+    _onFullscreenChanged() {
+        if (this._topBarHidden())
+            this._stopCapture();
+        else
+            this._startCapture();
+    }
+
+    _startCapture() {
+        if (this._destroyed || this._capture !== null || !this._playing || this._topBarHidden())
+            return;
+        const capture = new AudioCapture({
+            bars: BAR_COUNT,
+            fps: this._fps,
+            onLevels: levels => this._onLevels(levels),
+            onExit: quick => this._onCaptureExit(quick),
+        });
+        if (capture.start())
+            this._capture = capture;
+        else
+            this._onCaptureExit(true);
+    }
+
+    _stopCapture() {
+        this._clearTimer('silence');
+        this._clearTimer('output');
+        if (this._capture !== null)
+            this._capture.stop();
+        this._capture = null;
+        this._clearLevels();
+        this._setSoundVisible(false);
+    }
+
+    // The recorder ended by itself: the sound server restarted, or it could not start at all.
+    _onCaptureExit(quick) {
+        this._capture = null;
+        this._clearTimer('silence');
+        this._clearLevels();
+        this._setSoundVisible(false);
+        this._captureFailures = quick ? this._captureFailures + 1 : 0;
+        if (this._playing && this._captureFailures < CAPTURE_MAX_FAILURES)
+            this._setTimer('retry', CAPTURE_RETRY_MS, () => this._startCapture());
+    }
+
+    // A stream stays on the output it started on, so follow the user to new speakers/headphones.
+    _onOutputChanged() {
+        if (this._capture === null)
+            return;
+        this._setTimer('output', SINK_CHANGE_DELAY_MS, () => {
+            if (this._capture === null)
+                return;
+            this._stopCapture();
+            this._startCapture();
+        });
+    }
+
+    _clearLevels() {
+        this._bars.clear();
+        if (this._strip !== null)
+            this._strip.clear();
+    }
+
+    _onLevels(levels) {
+        this._bars.setLevels(levels);
+        if (this._strip !== null)
+            this._strip.setLevels(levels);
+        let sound = false;
+        for (let i = 0; i < levels.length; i++) {
+            if (levels[i] > 0) {
+                sound = true;
+                break;
+            }
+        }
+        if (sound) {
+            this._clearTimer('silence');
+            this._setSoundVisible(true);
+        } else if (this._soundVisible && !this._timers.has('silence')) {
+            this._setTimer('silence', SILENCE_HIDE_MS, () => this._setSoundVisible(false));
+        }
+    }
+
+    _setSoundVisible(visible) {
+        if (visible === this._soundVisible)
+            return;
+        this._soundVisible = visible;
+        this._syncMusicActors();
+    }
+
+    // Fade the small bars and the light strip in or out, to match the sound and the chosen style.
+    _syncMusicActors() {
+        const bars = this._soundVisible && this._musicStyle !== 'strip';
+        if (bars !== this._barsShown) {
+            this._barsShown = bars;
+            const actor = this._bars.actor;
+            actor.remove_all_transitions();
+            if (bars) {
+                actor.opacity = 0;
+                actor.show();
+                actor.ease({opacity: 255, duration: FADE_MS, mode: Clutter.AnimationMode.EASE_OUT_QUAD});
+            } else {
+                this._clearTimer('tip');
+                this._hideTip();
+                actor.ease({
+                    opacity: 0,
+                    duration: FADE_MS,
+                    mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+                    onComplete: () => {
+                        if (!this._barsShown)
+                            actor.hide();
+                    },
+                });
+            }
+        }
+        this._fadeStrip();
+        this._syncVisibility();
+    }
+
+    // ---- the light strip across the top bar --------------------------------------------------
+
+    _syncStrip() {
+        const wanted = this._settings.get_boolean('music-visuals') && this._musicStyle !== 'bars';
+        if (!wanted) {
+            this._removeStrip();
+            return;
+        }
+        if (this._strip === null) {
+            this._strip = new StripWidget(BAR_COUNT);
+            // Chrome that tracks fullscreen: it hides with the top bar under a fullscreen video.
+            Main.layoutManager.addChrome(this._strip.actor, {
+                affectsInputRegion: false,
+                trackFullscreen: true,
+            });
+            const panelBox = Main.layoutManager.panelBox;
+            Main.uiGroup.set_child_above_sibling(this._strip.actor, panelBox);
+            this._panelBoxId = panelBox.connect('notify::allocation', () => this._placeStrip());
+            this._strip.setPalette(this._palette ? this._palette.bars : null);
+            this._placeStrip();
+            this._fadeStrip();
+        }
+        this._strip.setPalette(this._palette ? this._palette.bars : null);
+    }
+
+    // Along the bottom edge of the top bar, wherever that is and however wide.
+    _placeStrip() {
+        if (this._strip === null)
+            return;
+        const panelBox = Main.layoutManager.panelBox;
+        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        const height = STRIP_HEIGHT * scale;
+        const actor = this._strip.actor;
+        actor.set_position(panelBox.x, panelBox.y + Math.max(0, panelBox.height - height));
+        actor.set_size(panelBox.width, panelBox.height >= height ? height : 0);
+    }
+
+    // The strip is always "shown" (the layout manager owns that flag, for fullscreen windows);
+    // it appears and disappears through its opacity, with the sound.
+    _fadeStrip() {
+        if (this._strip === null)
+            return;
+        const actor = this._strip.actor;
+        actor.remove_all_transitions();
+        actor.ease({
+            opacity: this._soundVisible ? 255 : 0,
+            duration: FADE_MS,
+            mode: Clutter.AnimationMode.EASE_OUT_QUAD,
+        });
+    }
+
+    _removeStrip() {
+        if (this._strip === null)
+            return;
+        if (this._panelBoxId)
+            Main.layoutManager.panelBox.disconnect(this._panelBoxId);
+        this._panelBoxId = 0;
+        this._strip.actor.remove_all_transitions();
+        Main.layoutManager.removeChrome(this._strip.actor);
+        this._strip.actor.destroy();
+        this._strip = null;
+    }
+}

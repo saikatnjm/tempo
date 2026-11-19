@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    name: Unit tests and build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install gjs and the schema compiler
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gjs libglib2.0-bin zip
+      - name: Unit tests
+        run: make test
+      - name: Build both variants
+        run: make zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tempo-zips
+          path: dist/*.zip
+
+  smoke:
+    name: GNOME ${{ matrix.gnome }} (${{ matrix.base }})
+    runs-on: ubuntu-24.04
+    # "preview" rows are newer GNOME versions being tried out; they report but do not fail the run.
+    continue-on-error: ${{ matrix.preview == true }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {gnome: "42", base: "ubuntu:22.04", dockerfile: Dockerfile.apt}
+          - {gnome: "43", base: "debian:12", dockerfile: Dockerfile.apt}
+          - {gnome: "46", base: "ubuntu:24.04", dockerfile: Dockerfile.apt}
+          - {gnome: "48", base: "debian:13", dockerfile: Dockerfile.apt}
+          - {gnome: "49", base: "fedora:43", dockerfile: Dockerfile.dnf, preview: true}
+          - {gnome: "50", base: "ubuntu:26.04", dockerfile: Dockerfile.apt, preview: true}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build a container with this GNOME Shell
+        run: >
+          docker build -t tempo-test
+          -f tests/smoke/${{ matrix.dockerfile }}
+          --build-arg BASE=${{ matrix.base }}
+          tests/smoke
+      - name: Load Tempo in a headless GNOME Shell and exercise every feature
+        run: tests/smoke/in-container.sh tempo-test build/smoke
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-gnome-${{ matrix.gnome }}
+          path: build/smoke

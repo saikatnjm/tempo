@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">
+  <!-- Tempo: a ring gauge (about 70 % full) with three bars inside -->
+  <path fill="none" stroke="#2e3436" stroke-opacity="0.35" stroke-width="1.6" d="M8 1.8a6.2 6.2 0 1 1 0 12.4a6.2 6.2 0 1 1 0-12.4z"/>
+  <path fill="none" stroke="#2e3436" stroke-width="1.6" stroke-linecap="round" d="M8 1.8a6.2 6.2 0 1 1-5.9 8.1"/>
+  <rect fill="#2e3436" x="5" y="7" width="1.5" height="3" rx="0.75"/>
+  <rect fill="#2e3436" x="7.25" y="5" width="1.5" height="6" rx="0.75"/>
+  <rect fill="#2e3436" x="9.5" y="6.2" width="1.5" height="4.4" rx="0.75"/>
+</svg>

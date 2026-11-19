@@ -1,0 +1,107 @@
+/* Tempo. Sizes are in px so GNOME scales them on HiDPI screens. No colours are set for text or
+   ring tracks: they follow the top bar's own text colour, on dark and light themes alike. */
+
+.tempo-box {
+  spacing: 7px;
+}
+
+.tempo-ring {
+  width: 16px;
+  height: 16px;
+}
+
+/* 10 bars x 3px + 9 gaps x 2px */
+.tempo-bars {
+  width: 48px;
+  height: 16px;
+}
+
+.tempo-temp {
+  font-size: 0.92em;
+  font-weight: 500;
+  font-feature-settings: "tnum";
+}
+
+/* Network speed: two small lines, download over upload. */
+.tempo-net-arrow,
+.tempo-net-value {
+  font-size: 0.64em;
+  font-weight: 600;
+  font-feature-settings: "tnum";
+}
+
+.tempo-net-line {
+  spacing: 2px;
+}
+
+.tempo-temp.tempo-warm { color: #ffd60a; }
+.tempo-temp.tempo-hot { color: #ff453a; }
+
+/* Each number is right-aligned in a slot wide enough for the longest value ("888M"), so the
+   width stays the same whatever the traffic. The code replaces this width with an exact one
+   measured in the font in use. */
+.tempo-net-slot {
+  width: 1.75em;
+}
+
+/* Room for three digits, so the temperature doesn't nudge its neighbours either. */
+.tempo-temp {
+  min-width: 2em;
+  text-align: right;
+}
+
+.tempo-menu {
+  min-width: 17em;
+}
+
+/* Read-only lines of information and their headings: tighter than clickable menu items, so
+   the whole menu fits on a 1366 x 768 laptop screen. */
+.tempo-row.popup-menu-item {
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.tempo-heading.popup-menu-item {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.tempo-value {
+  font-feature-settings: "tnum";
+  font-weight: 500;
+}
+
+.tempo-hint {
+  font-size: 0.9em;
+}
+
+/* The tip shown while the pointer rests on the music bars. Dark on every theme, like the
+   shell's own tooltips. */
+.tempo-tip {
+  background-color: rgba(28, 28, 30, 0.96);
+  color: #f2f2f7;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 9px 13px;
+  spacing: 8px;
+}
+
+/* "Now playing", in that tip and at the top of the menu: app icon, title, and the app's name
+   underneath. */
+.tempo-playing {
+  spacing: 10px;
+}
+
+.tempo-playing-icon {
+  icon-size: 32px;
+}
+
+.tempo-playing-title {
+  font-weight: 600;
+  max-width: 15em;
+}
+
+.tempo-playing-app {
+  font-size: 0.9em;
+  max-width: 15em;
+}

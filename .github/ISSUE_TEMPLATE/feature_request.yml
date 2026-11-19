@@ -1,0 +1,11 @@
+name: Idea
+description: Suggest something Tempo could do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like, and why?
+      description: Tempo aims to stay very small, so the "why" matters as much as the "what".
+    validations:
+      required: true

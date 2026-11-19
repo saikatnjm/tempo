@@ -1,0 +1,29 @@
+# GNOME Shell test image for Debian and Ubuntu bases (see in-container.sh).
+#   docker build -t tempo-test:gnome48 -f tests/smoke/Dockerfile.apt --build-arg BASE=debian:13 tests/smoke
+ARG BASE=debian:13
+FROM ${BASE}
+# Optional faster mirror for local runs. TLS checks are skipped for it because the base image has
+# no CA certificates yet; apt still verifies every package against Ubuntu's signing keys.
+ARG APT_MIRROR=""
+ENV DEBIAN_FRONTEND=noninteractive
+RUN set -e; \
+    if [ -n "$APT_MIRROR" ]; then \
+      for f in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources; do \
+        [ -f "$f" ] && sed -i -E "s#http://(archive|security)\.ubuntu\.com/ubuntu/?#$APT_MIRROR#g" "$f"; \
+      done; \
+      APT_OPTS="-o Acquire::https::Verify-Peer=false -o Acquire::https::Verify-Host=false"; \
+    fi; \
+    apt-get ${APT_OPTS:-} update; \
+    apt-get ${APT_OPTS:-} install -y --no-install-recommends \
+      gnome-shell gjs "$(apt-cache show dbus-daemon >/dev/null 2>&1 && echo dbus-daemon || echo dbus)" \
+      libgl1-mesa-dri libegl1 libgles2 \
+      pulseaudio-utils librsvg2-common procps \
+      $(apt-cache show pulseaudio >/dev/null 2>&1 && echo pulseaudio); \
+    rm -rf /var/lib/apt/lists/*; \
+    useradd -m tester
+# No systemd runs in the container. Without this folder GNOME Shell uses its built-in fallback
+# for login sessions instead of looking for logind on a system bus that is not there.
+RUN rm -rf /run/systemd
+USER tester
+ENV XDG_RUNTIME_DIR=/tmp/run-tester
+WORKDIR /home/tester

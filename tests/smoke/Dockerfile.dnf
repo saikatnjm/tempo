@@ -1,0 +1,16 @@
+# GNOME Shell test image for Fedora bases (see in-container.sh).
+#   docker build -t tempo-test:gnome49 -f tests/smoke/Dockerfile.dnf --build-arg BASE=fedora:43 tests/smoke
+ARG BASE=fedora:43
+FROM ${BASE}
+RUN set -e; \
+    dnf -y install --setopt=install_weak_deps=False \
+      gnome-shell gjs dbus-daemon mesa-dri-drivers mesa-libEGL mesa-libGLES \
+      pulseaudio pulseaudio-utils librsvg2 procps-ng; \
+    dnf clean all; \
+    useradd -m tester
+# No systemd runs in the container. Without this folder GNOME Shell uses its built-in fallback
+# for login sessions instead of looking for logind on a system bus that is not there.
+RUN rm -rf /run/systemd
+USER tester
+ENV XDG_RUNTIME_DIR=/tmp/run-tester
+WORKDIR /home/tester

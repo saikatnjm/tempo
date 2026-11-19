@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist gettext-domain="tempo">
+  <enum id="org.gnome.shell.extensions.tempo.Palette">
+    <value nick="ember" value="0"/>
+    <value nick="aurora" value="1"/>
+    <value nick="orchid" value="2"/>
+    <value nick="mono" value="3"/>
+  </enum>
+  <enum id="org.gnome.shell.extensions.tempo.MusicStyle">
+    <value nick="bars" value="0"/>
+    <value nick="strip" value="1"/>
+    <value nick="both" value="2"/>
+  </enum>
+  <enum id="org.gnome.shell.extensions.tempo.TemperatureUnit">
+    <value nick="celsius" value="0"/>
+    <value nick="fahrenheit" value="1"/>
+  </enum>
+
+  <schema id="org.gnome.shell.extensions.tempo" path="/org/gnome/shell/extensions/tempo/">
+    <key name="show-cpu" type="b">
+      <default>true</default>
+      <summary>Show the processor ring</summary>
+      <description>A small ring in the top bar that fills up as the processor gets busier.</description>
+    </key>
+    <key name="show-memory" type="b">
+      <default>true</default>
+      <summary>Show the memory ring</summary>
+      <description>A small ring in the top bar that fills up as memory is used.</description>
+    </key>
+    <key name="show-temperature" type="b">
+      <default>true</default>
+      <summary>Show the processor temperature</summary>
+      <description>Turns amber above 75 °C and red above 85 °C. Hidden on machines without a readable sensor.</description>
+    </key>
+    <key name="show-network" type="b">
+      <default>false</default>
+      <summary>Show network speed</summary>
+      <description>Download and upload speed in the top bar. Always available in the menu.</description>
+    </key>
+    <key name="music-visuals" type="b">
+      <default>false</default>
+      <summary>React to music</summary>
+      <description>Show music visuals while a media player is playing. While off, or while nothing plays, no process runs and no sound is read.</description>
+    </key>
+    <key name="music-style" enum="org.gnome.shell.extensions.tempo.MusicStyle">
+      <default>'bars'</default>
+      <summary>How music is shown</summary>
+      <description>"bars": ten small bars next to the rings. "strip": a thin row of pixels along the whole top bar, in the palette's colours. "both": the two together.</description>
+    </key>
+    <key name="music-fps" type="i">
+      <range min="5" max="30"/>
+      <default>8</default>
+      <summary>Music updates per second</summary>
+      <description>Each update makes GNOME Shell redraw part of the top bar, so higher values look smoother and use more processor time.</description>
+    </key>
+    <key name="refresh-interval" type="i">
+      <range min="1" max="10"/>
+      <default>3</default>
+      <summary>Seconds between system readings</summary>
+    </key>
+    <key name="palette" enum="org.gnome.shell.extensions.tempo.Palette">
+      <default>'ember'</default>
+      <summary>Colour palette</summary>
+      <description>Colours of the rings and music bars. "mono" follows the top bar's text colour.</description>
+    </key>
+    <key name="temperature-unit" enum="org.gnome.shell.extensions.tempo.TemperatureUnit">
+      <default>'celsius'</default>
+      <summary>Temperature unit</summary>
+    </key>
+  </schema>
+</schemalist>

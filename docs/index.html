@@ -1,0 +1,300 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tempo: system rings and music bars for the GNOME top bar</title>
+<meta name="description" content="Tempo puts CPU and memory rings, temperature, network speed and music bars in the GNOME top bar. Small, quiet, and every part has its own switch.">
+<meta property="og:title" content="Tempo">
+<meta property="og:description" content="Your system and your music, at a glance. A tiny GNOME Shell extension.">
+<meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/logo-512.png">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<style>
+:root {
+  --bg: #121214; --surface: #1b1b1f; --line: rgba(255, 255, 255, .09);
+  --text: #f2f2f7; --muted: #a5a5b0;
+  --p1: #ffd166; --p2: #ff9f43; --p3: #ff5e7e;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.65 Inter, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif;
+}
+a { color: var(--p2); }
+img { max-width: 100%; height: auto; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+header { text-align: center; padding: 72px 0 40px; }
+header img.logo { width: 92px; height: 92px; }
+h1 { font-size: clamp(40px, 7vw, 60px); line-height: 1.1; margin: 18px 0 8px; letter-spacing: -.02em; }
+h2 { font-size: 30px; line-height: 1.2; margin: 0 0 10px; letter-spacing: -.01em; }
+h3 { font-size: 18px; margin: 0 0 6px; }
+.tagline { font-size: 22px; margin: 0 0 6px; }
+.sub { color: var(--muted); max-width: 620px; margin: 0 auto 26px; }
+.lead { color: var(--muted); max-width: 700px; margin: 0 0 26px; }
+.buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.button {
+  display: inline-block; padding: 11px 22px; border-radius: 999px; font-weight: 600;
+  text-decoration: none; border: 1px solid var(--line); color: var(--text);
+}
+.button.primary { background: linear-gradient(100deg, var(--p1), var(--p2) 55%, var(--p3)); color: #1c1206; border: 0; }
+section { padding: 56px 0; border-top: 1px solid var(--line); }
+
+/* The live demo: a slice of top bar drawn in CSS */
+.demo { margin: 44px auto 0; display: inline-flex; align-items: center; gap: 12px;
+  background: #1c1c1e; border: 1px solid var(--line); border-radius: 14px; padding: 14px 22px; }
+.bars { display: flex; align-items: center; gap: 3.5px; height: 30px; }
+.bars i { width: 5px; height: 30px; border-radius: 3px; transform: scaleY(.2);
+  animation: beat var(--d) ease-in-out var(--o) infinite alternate; }
+@keyframes beat { from { transform: scaleY(.17); } to { transform: scaleY(1); } }
+.ring { width: 30px; height: 30px; transform: rotate(-90deg); }
+.ring circle { fill: none; stroke-width: 4.5; }
+.ring .track { stroke: rgba(255, 255, 255, .2); }
+.ring .value { stroke-linecap: round; stroke-dasharray: 78.5; animation: fill 7s ease-in-out infinite alternate; }
+.ring.cpu .value { stroke: var(--p2); --from: 68; --to: 34; }
+.ring.mem .value { stroke: var(--p3); --from: 50; --to: 42; animation-duration: 11s; }
+@keyframes fill { from { stroke-dashoffset: var(--from); } to { stroke-dashoffset: var(--to); } }
+.demo .temp { font-weight: 600; font-size: 19px; font-variant-numeric: tabular-nums; }
+.demo .net { display: inline-grid; grid-template-columns: auto auto; column-gap: 4px; text-align: right;
+  font-weight: 600; font-size: 12px; line-height: 1.2; font-variant-numeric: tabular-nums; color: rgba(242, 242, 247, .82); }
+.swatches { display: flex; gap: 10px; justify-content: center; margin-top: 18px; }
+.swatches button { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.swatches button[aria-pressed="true"] { border-color: var(--text); }
+.caption { color: var(--muted); font-size: 14px; margin-top: 10px; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; }
+.card p { margin: 0; color: var(--muted); font-size: 16px; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin: 0 0 26px; }
+.metric { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
+.metric b { display: block; font-size: 30px; line-height: 1.2;
+  background: linear-gradient(100deg, var(--p1), var(--p3)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.metric span { color: var(--muted); font-size: 15px; }
+table { width: 100%; border-collapse: collapse; font-size: 16px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+.scroll { overflow-x: auto; }
+ul.plain { padding-left: 20px; color: var(--muted); }
+ul.plain b { color: var(--text); }
+.shots { display: grid; grid-template-columns: minmax(0, 295px) minmax(0, 1fr); gap: 24px; align-items: start; }
+.shots figure { margin: 0; }
+.shots img { border-radius: 12px; border: 1px solid var(--line); display: block; }
+.palettes { display: grid; gap: 12px; }
+.palettes img { border-radius: 10px; }
+pre { background: #0c0c0e; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow-x: auto; font-size: 15px; }
+code { font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", Menlo, monospace; }
+details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+summary { cursor: pointer; font-weight: 600; }
+details p { color: var(--muted); margin: 8px 0 0; }
+footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top: 1px solid var(--line); text-align: center; }
+@media (max-width: 700px) { .shots { grid-template-columns: 1fr; } .demo { gap: 9px; padding: 12px 14px; } .demo .net { display: none; } }
+@media (prefers-reduced-motion: reduce) { .bars i, .ring .value { animation: none; } .bars i { transform: scaleY(.6); } }
+</style>
+</head>
+<body>
+
+<header class="wrap">
+  <img class="logo" src="assets/logo.svg" alt="Tempo logo" width="92" height="92">
+  <h1>Tempo</h1>
+  <p class="tagline">Your system and your music, at a glance.</p>
+  <p class="sub">CPU and memory rings, temperature, network speed and music bars for the GNOME top bar. Small, quiet, and every part has its own switch.</p>
+  <div class="buttons">
+    <a class="button primary" href="https://github.com/saikatnjm/tempo#install">Install</a>
+    <a class="button" href="https://github.com/saikatnjm/tempo">Source on GitHub</a>
+  </div>
+
+  <div>
+    <div class="demo" role="img" aria-label="Animated drawing of Tempo in a top bar: music bars, a processor ring, a memory ring, 52 degrees, and download over upload speed">
+      <span class="bars" id="bars"></span>
+      <svg class="ring cpu" viewBox="0 0 30 30"><circle class="track" cx="15" cy="15" r="12.5"/><circle class="value" cx="15" cy="15" r="12.5"/></svg>
+      <svg class="ring mem" viewBox="0 0 30 30"><circle class="track" cx="15" cy="15" r="12.5"/><circle class="value" cx="15" cy="15" r="12.5"/></svg>
+      <span class="temp">52°</span>
+      <span class="net"><span>↓</span><span>892K</span><span>↑</span><span>12K</span></span>
+    </div>
+  </div>
+  <div class="swatches" id="swatches" aria-label="Colour palette for the drawing above"></div>
+  <p class="caption">A drawing of Tempo in the top bar. Pick a palette; all four ship with it. Real screenshots are further down.</p>
+</header>
+
+<main>
+<section class="wrap" id="features">
+  <h2>What you get</h2>
+  <p class="lead">A calm top bar that still tells you what your computer is doing.</p>
+  <div class="grid">
+    <div class="card"><h3>Two rings</h3><p>One fills up with processor use, the other with memory use. No numbers to read; a glance is enough.</p></div>
+    <div class="card"><h3>Temperature</h3><p>The processor's temperature, turning amber above 75 °C and red above 85 °C. Celsius or Fahrenheit.</p></div>
+    <div class="card"><h3>Music visuals</h3><p>Ten small bars that move with the sound while a media player is playing, and fade away when it stops.</p></div>
+    <div class="card"><h3>Now playing</h3><p>Rest the pointer on the bars to see what is playing and in which app. The menu shows it too, and a click takes you there.</p></div>
+    <div class="card"><h3>Light strip</h3><p>Or show the music as a row of pixels along the whole top bar, in the palette's colours. Or both.</p></div>
+    <div class="card"><h3>Network speed</h3><p>Download over upload in two small lines of fixed width, so the top bar never shuffles sideways as the numbers change.</p></div>
+    <div class="card"><h3>One menu</h3><p>Click for processor speed and load, memory and swap, graphics, disk and fan readings, and the four busiest apps.</p></div>
+    <div class="card"><h3>Four palettes</h3><p>Ember, Aurora, Orchid, or Mono, which simply uses the top bar's own text colour.</p></div>
+    <div class="card"><h3>A switch for everything</h3><p>Each part turns on or off on its own, and a part that is off costs nothing. New parts start off.</p></div>
+  </div>
+</section>
+
+<section class="wrap" id="light">
+  <h2>Light by design</h2>
+  <p class="lead">Tempo was built for a laptop that runs hot, so the rule is simple: do nothing unless something on screen needs to change. Measured on a 2019 Ryzen 5 3500U laptop with GNOME Shell 42; figures are percent of one of its eight processor threads.</p>
+  <div class="metrics" id="metrics">
+    <div class="metric"><b>0</b><span>processes and timers when every part is off, when nothing is playing, or while a fullscreen window hides the top bar</span></div>
+    <div class="metric"><b>0 %</b><span>measurable cost for the rings, temperature and network speed</span></div>
+    <div class="metric"><b>2.1 %</b><span>for the small bars at the default 8 updates a second, in a clean test</span></div>
+    <div class="metric"><b>1 %</b><span>and 6 MB for the sound recorder, only while music is shown</span></div>
+    <div class="metric"><b>115 KB</b><span>installed. No compiled code, no background service</span></div>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>State, in a clean test (<code>make bench</code>)</th><th>Added cost</th></tr></thead>
+    <tbody>
+      <tr><td>Rings, temperature and network shown</td><td>Nothing measurable</td></tr>
+      <tr><td>Small bars at 8 updates a second (the default)</td><td>2.1 %</td></tr>
+      <tr><td>Small bars at 12 updates a second</td><td>3.0 %</td></tr>
+      <tr><td>Small bars at 20 updates a second</td><td>5.4 %</td></tr>
+      <tr><td>Light strip at 12 updates a second</td><td>3.5 %</td></tr>
+      <tr><td>Bars and light strip at 12 updates a second</td><td>4.6 %</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="caption">On a busy real desktop expect about three times these figures: the same laptop in daily use, with two screens and a video playing, measured about 9 % for the small bars at 12 updates a second.</p>
+  <ul class="plain">
+    <li><b>Nothing is polled for music.</b> Tempo waits for the session bus to say that a player started. The recorder stops a few seconds after it pauses, so the sound card can go back to sleep.</li>
+    <li><b>Redraw only on change.</b> A ring is repainted only when its percentage changes; a label only when its text changes.</li>
+    <li><b>Slow sensors never block your desktop.</b> Hardware sensors are read on a worker thread, and the process list in small slices between frames.</li>
+    <li><b>Menu details are read only while the menu is open</b>, and players are asked what they are playing only while the pointer rests on the bars.</li>
+    <li><b>Nothing is listened to that you can't see.</b> While a fullscreen window hides the top bar, the recorder is stopped.</li>
+    <li><b>The one real cost is animation.</b> Moving with music means GNOME Shell repaints a piece of the top bar for every update. That is why the update rate is a setting with a modest default, why music is off until you switch it on, and why the light strip, which repaints a strip as wide as the screen, costs the most.</li>
+  </ul>
+</section>
+
+<section class="wrap" id="screenshots">
+  <h2>Screenshots</h2>
+  <p class="lead">These are screenshots, not drawings. The project's test tool takes them from a GNOME Shell running the current code, with generated music playing. The song and the app names in them are test data.</p>
+  <div class="shots">
+    <figure><img src="assets/menu.png" width="295" alt="Tempo's menu, open below the top bar" loading="lazy"></figure>
+    <div>
+      <div class="palettes">
+        <img src="assets/bar-ember.png" width="514" alt="Ember palette: amber to coral" loading="lazy">
+        <img src="assets/bar-aurora.png" width="514" alt="Aurora palette: blue to violet" loading="lazy">
+        <img src="assets/bar-orchid.png" width="514" alt="Orchid palette: pink to violet" loading="lazy">
+        <img src="assets/bar-mono.png" width="514" alt="Mono palette: the top bar's own text colour" loading="lazy">
+      </div>
+      <p class="caption">Ember, Aurora, Orchid and Mono, three times life size.</p>
+      <figure style="margin-top: 20px"><img src="assets/tip.png" width="412" alt="A small card under the music bars naming the song and the app" loading="lazy"></figure>
+      <p class="caption">Rest the pointer on the bars to see what is playing, and in which app.</p>
+      <figure style="margin-top: 20px"><img src="assets/strip-detail.png" alt="The light strip: two rows of small pixels along the bottom edge of the top bar" loading="lazy"></figure>
+      <p class="caption">The light strip: each bar lights its own stretch of the top bar.</p>
+      <figure style="margin-top: 20px"><img src="assets/settings.png" alt="Tempo's settings window" loading="lazy"></figure>
+    </div>
+  </div>
+</section>
+
+<section class="wrap" id="works-on">
+  <h2>Works on</h2>
+  <p class="lead">Any distribution that uses the GNOME desktop, on any processor architecture. Tempo is a GNOME Shell extension, so it does not run on KDE Plasma, Xfce, Cinnamon or COSMIC.</p>
+  <div class="scroll">
+  <table id="compat">
+    <thead><tr><th>GNOME Shell</th><th>You have it on</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>42</td><td>Ubuntu 22.04 LTS, Pop!_OS 22.04</td><td>Tested on a real desktop and by the automated test</td></tr>
+      <tr><td>43</td><td>Debian 12</td><td>Same build as 42</td></tr>
+      <tr><td>44</td><td>Fedora 38</td><td>Same build as 42</td></tr>
+      <tr><td>45</td><td>Fedora 39, Ubuntu 23.10</td><td>Same build as 46</td></tr>
+      <tr><td>46</td><td>Ubuntu 24.04 LTS</td><td>Tested by the automated test</td></tr>
+      <tr><td>47</td><td>RHEL 10, AlmaLinux 10, Rocky Linux 10, Fedora 41</td><td>Same build as 46</td></tr>
+      <tr><td>48</td><td>Debian 13, Fedora 42, Ubuntu 25.04</td><td>Tested by the automated test</td></tr>
+      <tr><td>49</td><td>Fedora 43, Ubuntu 25.10</td><td>Same build as 48</td></tr>
+      <tr><td>50</td><td>Ubuntu 26.04 LTS, Fedora 44</td><td>Same build as 48</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="caption">The automated test loads Tempo in that GNOME Shell and exercises every feature: all settings, the menu, all palettes, music bars with real captured sound, switching the extension off and on twice, and the settings window.</p>
+</section>
+
+<section class="wrap" id="install">
+  <h2>Install</h2>
+  <p class="lead">Download the zip for your GNOME Shell version from the <a href="https://github.com/saikatnjm/tempo/releases/latest">releases page</a>, then:</p>
+<pre><code>gnome-extensions install --force tempo-*.shell-extension.zip
+# log out and back in, then:
+gnome-extensions enable tempo@saikatnjm.github.io</code></pre>
+  <p class="lead">Or from source, without root access:</p>
+<pre><code>git clone https://github.com/saikatnjm/tempo.git
+cd tempo
+make install</code></pre>
+  <p class="caption">Music visuals need <code>parec</code> (package <code>pulseaudio-utils</code>), which Ubuntu, Fedora, Debian and most GNOME desktops already have. It works with PulseAudio and PipeWire.</p>
+</section>
+
+<section class="wrap" id="privacy">
+  <h2>Your sound stays yours</h2>
+  <ul class="plain">
+    <li><b>Speakers only.</b> Tempo reads the sound going to your speakers. It never opens the microphone.</li>
+    <li><b>Nothing is kept.</b> The sound becomes ten bar heights in memory and is thrown away. Nothing is saved, and Tempo never uses the network.</li>
+    <li><b>Only while music plays.</b> The recorder runs only while a media player reports that it is playing.</li>
+    <li><b>Open source.</b> Every line is on GitHub under the GPL-3.0-or-later licence.</li>
+  </ul>
+</section>
+
+<section class="wrap" id="questions">
+  <h2>Questions</h2>
+  <details><summary>Which app is making that sound?</summary><p>Rest the pointer on the small bars, or open the menu: the song and the app are at the top. Click it there to go to the app.</p></details>
+  <details><summary>The bars don't show up</summary><p>Check that "React to music" is on, that something is playing sound, and that the player supports the standard media controls. If it appears in GNOME's media controls in the notification list, it does.</p></details>
+  <details><summary>The temperature isn't shown</summary><p>Your machine has no sensor Tempo recognises yet. AMD, Intel and most ARM boards work; please open an issue for anything else.</p></details>
+  <details><summary>Can it show numbers next to the rings?</summary><p>The numbers are one click away in the menu. Keeping the top bar calm is the point.</p></details>
+  <details><summary>Why is there a small Tempo icon in my top bar?</summary><p>Every part is switched off. The icon keeps the menu reachable so you can switch things back on.</p></details>
+</section>
+</main>
+
+<footer class="wrap">
+  Tempo is free software under the GPL-3.0-or-later licence.
+  <a href="https://github.com/saikatnjm/tempo">Source</a> ·
+  <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a> ·
+  <a href="https://github.com/saikatnjm/tempo/blob/main/CHANGELOG.md">Changelog</a><br>
+  Not affiliated with or endorsed by the GNOME Foundation.
+</footer>
+
+<script>
+// The demo's bars and palette buttons. The page reads fine without this script.
+(function () {
+  var palettes = {
+    Ember: ['#ffd166', '#ff9f43', '#ff5e7e'],
+    Aurora: ['#64d2ff', '#0a84ff', '#bf5af2'],
+    Orchid: ['#ffa3d1', '#ff6fb5', '#c77dff'],
+    Mono: ['#f2f2f7', '#f2f2f7', '#f2f2f7']
+  };
+  function mix(a, b, t) {
+    return '#' + [1, 3, 5].map(function (i) {
+      var v = Math.round(parseInt(a.substr(i, 2), 16) * (1 - t) + parseInt(b.substr(i, 2), 16) * t);
+      return ('0' + v.toString(16)).slice(-2);
+    }).join('');
+  }
+  var bars = document.getElementById('bars');
+  var speeds = [0.62, 0.48, 0.81, 0.55, 0.93, 0.44, 0.70, 0.58, 0.87, 0.66];
+  for (var i = 0; i < 10; i++) {
+    var bar = document.createElement('i');
+    bar.style.setProperty('--d', speeds[i] + 's');
+    bar.style.setProperty('--o', (-i * 0.137) + 's');
+    bars.appendChild(bar);
+  }
+  var swatches = document.getElementById('swatches');
+  function use(name) {
+    var p = palettes[name], root = document.documentElement.style;
+    root.setProperty('--p1', p[0]); root.setProperty('--p2', p[1]); root.setProperty('--p3', p[2]);
+    [].forEach.call(bars.children, function (bar, i) {
+      var t = i / 9;
+      bar.style.background = t < 0.5 ? mix(p[0], p[1], t * 2) : mix(p[1], p[2], (t - 0.5) * 2);
+    });
+    [].forEach.call(swatches.children, function (b) { b.setAttribute('aria-pressed', b.title === name); });
+  }
+  Object.keys(palettes).forEach(function (name) {
+    var b = document.createElement('button');
+    b.type = 'button'; b.title = name; b.setAttribute('aria-label', name + ' palette');
+    b.style.background = 'linear-gradient(120deg, ' + palettes[name].join(', ') + ')';
+    b.addEventListener('click', function () { use(name); });
+    swatches.appendChild(b);
+  });
+  use('Ember');
+})();
+</script>
+</body>
+</html>

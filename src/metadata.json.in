@@ -1,0 +1,11 @@
+{
+  "uuid": "tempo@saikatnjm.github.io",
+  "name": "Tempo",
+  "description": "CPU and memory rings, temperature, network speed and music bars for the top bar. Small, quiet, and every part can be switched on or off.",
+  "shell-version": @SHELL_VERSIONS@,
+  "version": 1,
+  "version-name": "@VERSION@",
+  "url": "https://github.com/saikatnjm/tempo",
+  "settings-schema": "org.gnome.shell.extensions.tempo",
+  "gettext-domain": "tempo"
+}

@@ -1,0 +1,31 @@
+name: Bug report
+description: Something in Tempo does not work as it should
+labels: [bug]
+body:
+  - type: input
+    id: system
+    attributes:
+      label: Distribution and GNOME Shell version
+      description: For example "Ubuntu 24.04, GNOME Shell 46.0". Run `gnome-shell --version` to check.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Tempo version
+      description: Shown at the bottom of Tempo's settings window.
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+      description: The steps to make it happen again help the most.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Log lines
+      description: Output of `journalctl -b /usr/bin/gnome-shell | grep -i tempo`, if there is any.
+      render: text
