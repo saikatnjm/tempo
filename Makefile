@@ -30,6 +30,7 @@ uninstall:
 
 test:
 	@tests/unit/run.sh
+	@tests/fan/run.sh
 
 smoke: build
 	@tests/smoke/run.sh

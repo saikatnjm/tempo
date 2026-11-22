@@ -162,6 +162,18 @@ Music visuals need `parec`, which comes with `pulseaudio-utils` and is already i
 Ubuntu, Fedora, Debian and most other GNOME desktops. It works with both PulseAudio and
 PipeWire.
 
+## Optional: fan control
+
+Some computers start their fans late; a Dell Inspiron 3505 waits until about 90 °C. The
+optional `tempo-fan` service runs every fan Linux can control from its temperature, and adds
+a **Fan mode** switch to Tempo's menu: Cool (rises from 60 °C, full at 85 °C), Full speed, or
+Automatic. It is a few lines of bash that start no programs while running. See
+[fan/README.md](fan/README.md) for what it supports and how it stays safe.
+
+```sh
+sudo bash fan/install.sh
+```
+
 ## Install
 
 ### From a release

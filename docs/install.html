@@ -142,6 +142,14 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <p class="note">Your distribution isn't listed? It doesn't matter: if <code>gnome-shell --version</code> shows 42 or newer, Tempo works. The music tool works with both PulseAudio and PipeWire.</p>
 </section>
 
+<section id="fan">
+  <h2>Optional: fan control</h2>
+  <p class="lead">If your computer starts its fans late, the optional tempo-fan service runs every fan Linux can control from its temperature, and adds a <b>Fan mode</b> switch to Tempo's menu (Cool, Full speed, Automatic). It needs the source code and administrator rights once:</p>
+<pre><code>git clone https://github.com/saikatnjm/tempo.git
+sudo bash tempo/fan/install.sh</code></pre>
+  <p class="note">It lists the fans it will control before starting, installs nothing if there are none, and <code>sudo bash tempo/fan/install.sh remove</code> gives every fan back to the computer. ThinkPads need <code>options thinkpad_acpi fan_control=1</code> in <code>/etc/modprobe.d/thinkpad_acpi.conf</code> first. <a href="https://github.com/saikatnjm/tempo/tree/main/fan">Details</a>.</p>
+</section>
+
 <section id="update">
   <h2>Update</h2>
   <p class="lead">Download the newest file with the buttons above and run step 3 again, then log out and back in. Your settings are kept.</p>

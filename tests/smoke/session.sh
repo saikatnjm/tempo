@@ -37,6 +37,10 @@ if [ "${TEMPO_SMOKE_AUDIO:-1}" = 1 ] && command -v pulseaudio >/dev/null 2>&1 &&
     fi
 fi
 
+# A stand-in for the optional tempo-fan service's mode file, so the Fan mode menu shows up.
+export TEMPO_FAN_MODE="$XDG_RUNTIME_DIR/tempo-fan-mode"
+echo cool > "$TEMPO_FAN_MODE"
+
 gjs "$TEMPO_SMOKE_DIR/fake-player.js" &
 PLAYER=$!
 

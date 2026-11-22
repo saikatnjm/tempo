@@ -1,0 +1,26 @@
+[Unit]
+Description=Tempo fan curve: drives every controllable fan from its temperature
+Documentation=https://github.com/saikatnjm/tempo/tree/main/fan
+After=systemd-modules-load.service
+
+[Service]
+Type=simple
+ExecStart=/usr/local/bin/tempo-fan
+# After any stop, give every fan back to automatic control; after a crash, fans that have no
+# automatic mode to go back to are set to full speed, never off.
+ExecStopPost=/usr/local/bin/tempo-fan restore ${SERVICE_RESULT}
+Restart=on-failure
+RestartSec=5
+RuntimeDirectory=tempo-fan
+RuntimeDirectoryPreserve=yes
+Environment=TEMPO_FAN_STATE=/run/tempo-fan
+Nice=10
+MemoryMax=16M
+NoNewPrivileges=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+
+[Install]
+WantedBy=multi-user.target

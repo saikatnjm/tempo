@@ -277,6 +277,25 @@ class TempoProbe {
         this._check('menu: now playing shows the song', song !== undefined, JSON.stringify(rows.slice(0, 3)));
         this._check('menu: now playing names the app and the artist', song?.[1] === 'Tempo Test Player · Test Artist', song?.[1]);
         this._check('menu: music switch present', rows.some(r => r[0] === 'Music visuals'));
+        {
+            // Fan mode: shown because the stand-in mode file exists; choosing writes it.
+            const items = this._button().menu._getMenuItems();
+            const fanMode = items.find(i => i.label?.text?.startsWith('Fan mode'));
+            this._check('fan mode: shown when the fan service is installed', fanMode?.visible === true, fanMode?.label?.text);
+            this._check('fan mode: shows the current mode', fanMode?.label?.text === 'Fan mode: Cool', fanMode?.label?.text);
+            const full = fanMode?.menu._getMenuItems().find(i => i.label?.text === 'Full speed');
+            full?.activate(null);
+            await probeSleep(600);
+            const path = GLib.getenv('TEMPO_FAN_MODE');
+            const [, bytes] = GLib.file_get_contents(path);
+            this._check('fan mode: choosing Full speed writes it', new TextDecoder().decode(bytes).trim() === 'max');
+            this._check('fan mode: the label follows', fanMode?.label?.text === 'Fan mode: Full speed', fanMode?.label?.text);
+            fanMode?.menu._getMenuItems().find(i => i.label?.text?.startsWith('Cool'))?.activate(null);
+            await probeSleep(400);
+            // Choosing an item closes the menu, as in any GNOME menu: open it again.
+            this._button().menu.open();
+            await probeSleep(2500);
+        }
         this._check('menu: settings entry present', rows.some(r => r[0] === 'Settings'));
         const pinned = [];
         if (GLib.getenv('TEMPO_SMOKE_STYLE') === 'docs') {

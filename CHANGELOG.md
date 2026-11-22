@@ -4,6 +4,15 @@ All notable changes to Tempo are listed here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the version numbers follow
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **Fan control** (optional): the new `tempo-fan` service runs every fan Linux can control from
+  its temperature, and Tempo's menu gets a Fan mode switch (Cool, Full speed, Automatic). It is
+  for computers that start their fans late; see `fan/README.md`. Without the service, Tempo is
+  unchanged.
+
 ## [1.1.0] - 2026-11-22
 
 ### Changed

@@ -30,6 +30,9 @@ const TEMP_HOT_C = 85;
 const TEMP_MISSES_BEFORE_RESCAN = 3;
 const FAN_MAX_RPM = 20000;           // anything above is a bogus reading
 const FAN_ROWS = 4;                  // most fans listed in the menu
+// Written by the optional tempo-fan service (see fan/ in the source); the user owns it.
+const FAN_MODE_FILE = GLib.getenv('TEMPO_FAN_MODE') || '/var/lib/tempo-fan/mode';
+const FAN_MODES = ['cool', 'max', 'auto'];
 // Candidates for the widest network value: every digit three times, and each unit.
 const NET_WIDEST_SAMPLES = ['000M', '111M', '222M', '333M', '444M', '555M', '666M', '777M', '888M',
     '999M', '888K', '888G'];
@@ -286,6 +289,7 @@ class TempoIndicator {
         this._fanRows = [];
         for (let i = 0; i < FAN_ROWS; i++)
             this._fanRows.push(this._addRow(_('Fan')));
+        this._buildFanMode();
 
         this._addHeading(_('Network'));
         rows.network = this._addRow(_('Speed'));
@@ -317,6 +321,77 @@ class TempoIndicator {
         menu.addAction(_('Settings'), () => this._openPreferences());
 
         menu.connect('open-state-changed', (_menu, open) => this._onMenuToggled(open));
+    }
+
+    // "Fan mode" with three choices, shown only when the tempo-fan service is installed.
+    _buildFanMode() {
+        const names = {
+            cool: _('Cool'),
+            max: _('Full speed'),
+            auto: _('Automatic'),
+        };
+        const details = {
+            cool: _('Cool: rises from 60 °C, full at 85 °C'),
+            max: _('Full speed'),
+            auto: _('Automatic: the computer decides'),
+        };
+        this._fanModeNames = names;
+        this._fanMode = new PopupMenu.PopupSubMenuMenuItem(_('Fan mode'));
+        this._fanMode.add_style_class_name('tempo-row');
+        this._fanModeItems = new Map();
+        for (const mode of FAN_MODES) {
+            const item = new PopupMenu.PopupMenuItem(details[mode]);
+            item.connect('activate', () => this._setFanMode(mode));
+            this._fanMode.menu.addMenuItem(item);
+            this._fanModeItems.set(mode, item);
+        }
+        this._fanMode.visible = false;
+        this._button.menu.addMenuItem(this._fanMode);
+    }
+
+    // Only while the menu opens: is the service installed, and which mode is it in?
+    _syncFanMode() {
+        const file = Gio.File.new_for_path(FAN_MODE_FILE);
+        file.query_info_async('access::can-write', Gio.FileQueryInfoFlags.NONE, GLib.PRIORITY_LOW,
+            this._cancellable, (f, result) => {
+                let writable = false;
+                try {
+                    writable = f.query_info_finish(result).get_attribute_boolean('access::can-write');
+                } catch (e) {
+                    // not installed
+                }
+                if (this._destroyed)
+                    return;
+                this._fanMode.visible = writable;
+                if (!writable)
+                    return;
+                readTextAsync(FAN_MODE_FILE, this._cancellable, text => {
+                    const mode = (text ?? '').trim();
+                    this._showFanMode(FAN_MODES.includes(mode) ? mode : 'cool');
+                });
+            });
+    }
+
+    _showFanMode(mode) {
+        setLabel(this._fanMode.label, `${_('Fan mode')}: ${this._fanModeNames[mode]}`);
+        const dot = PopupMenu.Ornament.DOT ?? PopupMenu.Ornament.CHECK;
+        for (const [m, item] of this._fanModeItems)
+            item.setOrnament(m === mode ? dot : PopupMenu.Ornament.NONE);
+    }
+
+    _setFanMode(mode) {
+        const bytes = new GLib.Bytes(new TextEncoder().encode(`${mode}\n`));
+        Gio.File.new_for_path(FAN_MODE_FILE).replace_contents_bytes_async(bytes, null, false,
+            Gio.FileCreateFlags.NONE, this._cancellable, (f, result) => {
+                try {
+                    f.replace_contents_finish(result);
+                } catch (e) {
+                    console.error(`Tempo: could not change the fan mode: ${e.message}`);
+                    return;
+                }
+                if (!this._destroyed)
+                    this._showFanMode(mode);
+            });
     }
 
     _findSystemMonitor() {
@@ -535,6 +610,7 @@ class TempoIndicator {
             this._network = null;
         this._procs.reset();
         this._showProcesses(null);
+        this._syncFanMode();
         this._monitorItem.visible = this._findSystemMonitor() !== null;
         this._syncRefreshTimer();
         this._refresh();
