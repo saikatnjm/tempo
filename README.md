@@ -29,7 +29,7 @@
 | **Two rings** | One fills up with processor use, the other with memory use. No numbers to read; a glance is enough. |
 | **Temperature** | The processor's temperature, turning amber above 75 °C and red above 85 °C. |
 | **Network speed** | Download over upload in two small lines of fixed width, so the top bar never shuffles sideways as the numbers change. Off by default. |
-| **Music visuals** | While a media player is playing, Tempo moves with the sound, and stops when it stops. You choose how: ten **small bars** next to the rings, a **light strip** of pixels along the whole top bar, or both. Off by default. |
+| **Music visuals** | While a media player is playing, Tempo moves with the sound, and stops when it stops. You choose how: ten **small bars** next to the rings, or a **level line** along the bottom of the whole top bar that grows out from the middle with the loudness. Off by default. |
 | **Now playing** | Rest the pointer on the bars to see what is playing and in which app. The menu shows it too, and a click takes you to that app. |
 | **One menu** | Click for processor speed and load, memory and swap, graphics, disk and fan readings, network speed, and the four busiest apps. |
 | **Four palettes** | Ember, Aurora, Orchid, or Mono (plain, in the top bar's own text colour). |
@@ -45,8 +45,8 @@
 </p>
 
 <p align="center">
-  <img src="docs/assets/strip-detail.png" width="813" alt="The light strip: two rows of small pixels along the bottom edge of the top bar"><br>
-  <sub>The optional light strip, three times life size: each bar lights its own stretch of the top bar.</sub>
+  <img src="docs/assets/strip-detail.png" width="813" alt="The level line: a thin line along the bottom edge of the top bar, longer in the middle"><br>
+  <sub>The level line, three times life size: it grows out from the middle as the music gets louder.</sub>
 </p>
 
 The four palettes:
@@ -79,21 +79,21 @@ anyone can repeat it:
 | State | Added cost |
 |---|---|
 | Rings, temperature and network shown | Nothing measurable |
-| Small bars at 8 updates a second (the default) | 2.1 % |
-| Small bars at 12 updates a second | 3.0 % |
-| Small bars at 20 updates a second | 5.4 % |
-| Light strip at 12 updates a second | 3.5 % |
-| Bars and light strip at 12 updates a second | 4.6 % |
+| Level line at 8 updates a second (the default rate) | 1.4 % |
+| Level line at 12 updates a second | 2.0 % |
+| Small bars at 8 updates a second | 2.0 % |
+| Small bars at 12 updates a second | 2.8 % |
+| Small bars at 20 updates a second | 4.9 % |
 <!-- BENCH:END -->
 
 The rings, the temperature and the network speed are free: one timer every 3 seconds reads three
 small `/proc` files and one sensor, and nothing is redrawn unless a value changed.
 
-Moving with music is the one thing that costs, and almost all of it is GNOME Shell repainting a
-piece of the top bar for every update. Of the 3.0 % at 12 updates a second, listening and the
-maths are 0.9 %; the rest is repainting. That is why the update rate is a setting, why the
-default is a modest 8, and why the light strip, which repaints a strip as wide as the screen,
-is the most expensive thing Tempo can show.
+Moving with music is the one thing that costs, and most of it is GNOME Shell repainting a piece
+of the top bar for every update. Of the 2.8 % for the small bars at 12 updates a second,
+listening and the maths are 0.7 %; the rest is repainting. That is why the update rate is a
+setting with a modest default of 8. The level line is the lightest choice: it is drawn once and
+afterwards only stretched, which the graphics card does.
 
 ### On a real desktop
 
@@ -166,15 +166,16 @@ PipeWire.
 
 ### From a release
 
-1. Download the zip that matches your GNOME Shell version from the
-   [releases page](https://github.com/saikatnjm/tempo/releases/latest)
-   (`gnome-shell --version` tells you which you have):
-   - `tempo-…-gnome45+.shell-extension.zip` for GNOME Shell 45 and later
-   - `tempo-…-gnome42-44.shell-extension.zip` for GNOME Shell 42, 43 and 44
+1. Download the zip that matches your GNOME Shell version (`gnome-shell --version` tells you):
+   - **[GNOME 45 and newer](https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip)**
+   - **[GNOME 42, 43 and 44](https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip)**
+
+   Both links always download the newest version. Earlier versions are on the
+   [releases page](https://github.com/saikatnjm/tempo/releases).
 2. Install it:
 
    ```sh
-   gnome-extensions install --force tempo-*.shell-extension.zip
+   gnome-extensions install --force ~/Downloads/tempo-gnome45-plus.shell-extension.zip
    ```
 
 3. Log out and back in, then switch it on:
@@ -182,6 +183,10 @@ PipeWire.
    ```sh
    gnome-extensions enable tempo@saikatnjm.github.io
    ```
+
+The [install guide](https://saikatnjm.github.io/tempo/install.html) has the steps for each
+distribution (Ubuntu, Fedora, Debian, Arch, openSUSE and more), updating, removing, and fixes for
+common problems.
 
 ### From source
 
@@ -212,7 +217,7 @@ Open them from Tempo's menu (**Settings**), or from the Extensions app.
 | Temperature | On | Shows the processor temperature |
 | Network speed | Off | Shows download and upload speed |
 | React to music | Off | Shows the music visuals while a media player is playing |
-| Show it as | Small bars | Small bars, a light strip along the whole top bar, or both |
+| Show it as | Small bars | Small bars, or the level line along the whole top bar |
 | Smoothness | 8 | Music updates per second (5 to 30). Higher is smoother and costs more |
 | Colours | Ember | Ember, Aurora, Orchid or Mono |
 | Temperature unit | Celsius | Celsius or Fahrenheit |
@@ -240,9 +245,9 @@ the menu.
 Rest the pointer on the small bars, or open the menu: the song and the app are at the top.
 Click it there to go to the app.
 
-**Is the light strip worth it?**
-It looks good and it is the most expensive thing Tempo can show, because every update repaints
-a strip as wide as your screen. If lightness matters most to you, stay with the small bars.
+**Small bars or level line?**
+A matter of taste: the bars show the music's shape next to the rings, the line shows its
+loudness across the whole top bar. The line is a little lighter on the processor.
 
 **The bars don't show up.**
 Check that *React to music* is on, that something is actually playing sound, and that the

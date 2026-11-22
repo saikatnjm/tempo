@@ -7,10 +7,10 @@
 //  * Drawing: a ring or label is only repainted when the value it shows changes.
 //  * Menu details (fan, disk temperature, busiest apps, what is playing) are read only while
 //    the menu is open; the hover tip asks the players only when the pointer rests on the bars.
-//  * Music visuals (the small bars, the light strip along the top bar, or both): nothing runs
+//  * Music visuals (the small bars or the level line along the top bar): nothing runs
 //    until a media player reports "Playing"; then one small recorder process runs until
 //    shortly after it pauses, and not at all while a fullscreen window hides the top bar.
-//    Bars and strip are fed from the same frames.
+//    The small bars and the level line are fed from the same frames.
 
 const BAR_COUNT = 10;
 const REFRESH_MIN_S = 1;
@@ -29,6 +29,7 @@ const TEMP_WARM_C = 75;
 const TEMP_HOT_C = 85;
 const TEMP_MISSES_BEFORE_RESCAN = 3;
 const FAN_MAX_RPM = 20000;           // anything above is a bogus reading
+const FAN_ROWS = 4;                  // most fans listed in the menu
 // Candidates for the widest network value: every digit three times, and each unit.
 const NET_WIDEST_SAMPLES = ['000M', '111M', '222M', '333M', '444M', '555M', '666M', '777M', '888M',
     '999M', '888K', '888G'];
@@ -61,7 +62,6 @@ class TempoIndicator {
         this._sensors = findSensors();
         this._sensorMisses = 0;
         this._sensorRescanAt = TEMP_MISSES_BEFORE_RESCAN;
-        this._fanIndex = 0;
         this._procs = new ProcScanner(this._sampler.cpuCount, list => this._showProcesses(list));
 
         this._cpu = null;
@@ -79,7 +79,7 @@ class TempoIndicator {
         this._captureFailures = 0;
         this._soundVisible = false;      // there is sound to show right now
         this._barsShown = false;         // the small bars are on screen
-        this._musicStyle = 'bars';       // 'bars', 'strip' or 'both'
+        this._musicStyle = 'bars';       // 'bars' or 'strip' (the level line)
         this._fps = 0;
         this._palette = null;
         this._strip = null;
@@ -283,7 +283,9 @@ class TempoIndicator {
         rows.temperature = this._addRow(_('Processor'));
         rows.gpu = this._addRow(_('Graphics'));
         rows.disk = this._addRow(_('Disk'));
-        rows.fan = this._addRow(_('Fan'));
+        this._fanRows = [];
+        for (let i = 0; i < FAN_ROWS; i++)
+            this._fanRows.push(this._addRow(_('Fan')));
 
         this._addHeading(_('Network'));
         rows.network = this._addRow(_('Speed'));
@@ -334,7 +336,7 @@ class TempoIndicator {
         rows.temperature.item.visible = s.cpu !== null;
         rows.gpu.item.visible = s.gpu !== null;
         rows.disk.item.visible = s.disk !== null;
-        rows.fan.item.visible = s.fans.length > 0;
+        this._fanRows.forEach((row, i) => (row.item.visible = i === 0 && s.fans.length > 0));
         this._tempHeading.visible = s.cpu !== null || s.gpu !== null || s.disk !== null ||
             s.fans.length > 0;
     }
@@ -576,29 +578,55 @@ class TempoIndicator {
                     ? formatTemperature(milli / 1000, this._fahrenheit, true) : '–');
             });
         }
-        this._readFan(this._fanIndex, 0);
+        this._readFans();
         this._procs.scan();
         this._updateNowPlaying();
     }
 
-    // Some drivers report nonsense (65280 RPM) all the time, and any sensor can glitch once.
-    // So: start with the sensor that worked last time and walk on until one makes sense.
-    _readFan(index, tried) {
+    // A readable name for a fan: its own label if the driver gives one ("CPU Fan"), otherwise
+    // "Graphics" for a graphics-card fan, else "Fan 2" and so on.
+    _fanName(fan) {
+        if (fan.label)
+            return fan.label;
+        if (fan.graphics)
+            return _('Graphics fan');
+        return _('Fan %d').replace('%d', String(fan.number));
+    }
+
+    // Read every fan (only while the menu is open, on a worker thread), then list the ones that
+    // matter: see fansToShow().
+    _readFans() {
         const fans = this._sensors.fans;
         if (fans.length === 0)
             return;
-        readTextAsync(fans[index % fans.length], this._cancellable, text => {
-            const rpm = text === null ? NaN : parseInt(text, 10);
-            if (!Number.isFinite(rpm) || rpm < 0 || rpm > FAN_MAX_RPM) {
-                if (tried + 1 < fans.length)
-                    this._readFan(index + 1, tried + 1);
-                else
-                    setLabel(this._rows.fan.value, '–');
-                return;
-            }
-            this._fanIndex = index % fans.length;
-            setLabel(this._rows.fan.value, rpm === 0 ? _('Stopped') : `${rpm} RPM`);
-        });
+        const readings = [];
+        for (const fan of fans) {
+            readTextAsync(fan.path, this._cancellable, text => {
+                readings.push({
+                    name: this._fanName(fan),
+                    numbered: !fan.label && !fan.graphics,
+                    rpm: text === null ? NaN : parseInt(text, 10),
+                    priority: fan.priority,
+                });
+                if (readings.length < fans.length)
+                    return;
+                const shown = fansToShow(readings, FAN_MAX_RPM, FAN_ROWS);
+                // A lone fan without a label of its own is just "Fan", not "Fan 1".
+                if (shown.length === 1 && readings.find(r => r.name === shown[0].name)?.numbered)
+                    shown[0].name = _('Fan');
+                this._fanRows.forEach((row, i) => {
+                    const fan = shown[i];
+                    row.item.visible = fan !== undefined || (i === 0 && shown.length === 0);
+                    if (fan === undefined) {
+                        setLabel(row.name, _('Fan'));
+                        setLabel(row.value, '–');
+                        return;
+                    }
+                    setLabel(row.name, fan.name);
+                    setLabel(row.value, fan.rpm === 0 ? _('Stopped') : `${fan.rpm} RPM`);
+                });
+            });
+        }
     }
 
     _showProcesses(list) {
@@ -897,7 +925,7 @@ class TempoIndicator {
         this._syncMusicActors();
     }
 
-    // Fade the small bars and the light strip in or out, to match the sound and the chosen style.
+    // Fade the small bars and the level line in or out, to match the sound and the chosen style.
     _syncMusicActors() {
         const bars = this._soundVisible && this._musicStyle !== 'strip';
         if (bars !== this._barsShown) {
@@ -926,7 +954,7 @@ class TempoIndicator {
         this._syncVisibility();
     }
 
-    // ---- the light strip across the top bar --------------------------------------------------
+    // ---- the level line along the top bar ----------------------------------------------------
 
     _syncStrip() {
         const wanted = this._settings.get_boolean('music-visuals') && this._musicStyle !== 'bars';

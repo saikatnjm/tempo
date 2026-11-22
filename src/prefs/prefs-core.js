@@ -82,10 +82,9 @@ function fillTempoPreferences(window, settings, metadata) {
     music.add(tempoSwitchRow(settings, 'music-visuals',
         _('React to music'), _('Reads the speaker output only, never the microphone')));
     music.add(tempoChoiceRow(window, settings, 'music-style',
-        _('Show it as'), _('The light strip is a row of pixels along the whole top bar'), [
+        _('Show it as'), _('The level line runs along the whole top bar'), [
             ['bars', _('Small bars')],
-            ['strip', _('Light strip')],
-            ['both', _('Bars and light strip')],
+            ['strip', _('Level line')],
         ]));
     music.add(tempoNumberRow(settings, 'music-fps',
         _('Smoothness'), _('Updates per second. Higher is smoother and uses more processor time'), 5, 30));

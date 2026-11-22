@@ -143,37 +143,29 @@ class BarsWidget {
     }
 }
 
-// The light strip: small "pixels" along the whole top bar. Sizes in logical pixels.
-const STRIP_PIXEL_WIDTH = 4;
-const STRIP_PIXEL_HEIGHT = 2;
-const STRIP_PITCH = 6;               // one pixel plus the gap to the next
-const STRIP_ROW_GAP = 1;
-const STRIP_HEIGHT = 2 * STRIP_PIXEL_HEIGHT + STRIP_ROW_GAP;     // two rows of pixels
-const STRIP_OPACITY_STEP = 32;       // smaller brightness changes are not worth a redraw
-const STRIP_RESTING_GLOW = 0.18;     // how bright the lower row is when its band is silent
+// The level line along the bottom edge of the top bar. Sizes in logical pixels.
+const STRIP_HEIGHT = 2;
+const LINE_STEPS = 48;               // length steps; smaller changes are not worth a repaint
+const LINE_RESTING = 0.04;           // length while the music is very quiet
+const LINE_GRADIENT_STEP = 2;        // width of each colour band when the line is drawn
 
 /**
- * The music spread along the whole top bar: each bar lights its own stretch of pixels, bass in
- * the middle and treble at both ends. The lower row glows with the sound; the upper row lights
- * up only for the louder half.
+ * The level line: one thin line along the whole top bar that grows out from the middle as the
+ * music gets louder and shrinks back as it quietens, in the palette's colours (bass colour in
+ * the middle, treble colour at the ends).
  *
- * Built to cost as little as a full-width effect can: the pixels are drawn once, one segment
- * per bar and side, and after that only the segments' opacity changes. Nothing is drawn and no
- * texture is uploaded per frame. It is still the most expensive thing Tempo can show, because
- * every change makes GNOME Shell repaint a strip as wide as the screen.
+ * Built to cost next to nothing: the line is drawn once, and after that only its horizontal
+ * scale changes, which the graphics card does. Nothing is drawn or uploaded per frame.
  */
 class StripWidget {
     constructor(bands) {
         this._bands = bands;
         this._stops = undefined;
-        this._segments = [];
-        this.actor = new St.Widget({
-            style_class: 'tempo-strip',
-            layout_manager: new Clutter.FixedLayout(),
-            reactive: false,
-            opacity: 0,
-        });
-        this.actor.connect('notify::width', () => this._rebuild());
+        this._step = -1;
+        this.actor = new St.DrawingArea({style_class: 'tempo-strip', reactive: false, opacity: 0});
+        this.actor.set_pivot_point(0.5, 0.5);
+        this.actor.scale_x = LINE_RESTING;
+        this.actor.connect('repaint', area => this._draw(area));
     }
 
     /** @param {number[][]|null} stops - three gradient stops (0..255), or null for the text colour */
@@ -181,83 +173,47 @@ class StripWidget {
         if (stops === this._stops)
             return;
         this._stops = stops;
-        this._rebuild();
+        this.actor.queue_repaint();
     }
 
     /** @param {Uint8Array} levels - one value per band, 0..SPECTRUM_LEVELS */
     setLevels(levels) {
-        for (const segment of this._segments) {
-            const value = levels[segment.band] / SPECTRUM_LEVELS;
-            const low = this._step(STRIP_RESTING_GLOW + (1 - STRIP_RESTING_GLOW) * value);
-            const high = value > 0.5 ? this._step((value - 0.5) * 2) : 0;
-            if (segment.low.opacity !== low)
-                segment.low.opacity = low;
-            if (segment.high.opacity !== high)
-                segment.high.opacity = high;
+        // Overall loudness, with the bass (the beat) counting a little more than the treble.
+        const n = levels.length;
+        let sum = 0, weight = 0;
+        for (let i = 0; i < n; i++) {
+            const w = 2 - i / n;
+            sum += levels[i] * w;
+            weight += w;
         }
+        const loudness = Math.min(1, 1.5 * sum / weight / SPECTRUM_LEVELS);
+        const step = Math.round(loudness * LINE_STEPS);
+        if (step === this._step)
+            return;
+        this._step = step;
+        this.actor.scale_x = LINE_RESTING + (1 - LINE_RESTING) * step / LINE_STEPS;
     }
 
     clear() {
-        for (const segment of this._segments) {
-            segment.low.opacity = this._step(STRIP_RESTING_GLOW);
-            segment.high.opacity = 0;
-        }
+        this._step = -1;
+        this.actor.scale_x = LINE_RESTING;
     }
 
-    _step(fraction) {
-        return Math.min(255, Math.round(fraction * 255 / STRIP_OPACITY_STEP) * STRIP_OPACITY_STEP);
-    }
-
-    // Lay the segments out again: only when the top bar's width or the palette changes.
-    _rebuild() {
-        this.actor.destroy_all_children();
-        this._segments = [];
-        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-        const width = this.actor.width / scale;
-        const pixels = Math.floor((width + STRIP_PITCH - STRIP_PIXEL_WIDTH) / STRIP_PITCH);
-        if (pixels < 1)
-            return;
-        const offset = (width - (pixels * STRIP_PITCH - (STRIP_PITCH - STRIP_PIXEL_WIDTH))) / 2;
-        const middle = (pixels - 1) / 2;
-        const fromMiddle = pixel => (middle > 0 ? Math.abs(pixel - middle) / middle : 0);
-        // One segment per band on each side of the middle.
-        const perSegment = Math.max(1, Math.ceil(pixels / (2 * this._bands)));
-
-        for (let start = 0; start < pixels; start += perSegment) {
-            const count = Math.min(perSegment, pixels - start);
-            const band = Math.min(this._bands - 1,
-                Math.floor(fromMiddle(start + (count - 1) / 2) * this._bands));
-            const colors = [];
-            for (let i = 0; i < count; i++)
-                colors.push(this._stops ? gradientColor(this._stops, fromMiddle(start + i)) : null);
-
-            const row = top => {
-                const area = new St.DrawingArea({reactive: false, opacity: 0});
-                // A see-through actor is normally painted into a buffer of its own first, in
-                // case its parts overlap. These pixels don't, so skip that.
-                area.set_offscreen_redirect(0);
-                area.set_position(Math.round((offset + start * STRIP_PITCH) * scale),
-                    top ? 0 : (STRIP_PIXEL_HEIGHT + STRIP_ROW_GAP) * scale);
-                area.set_size(Math.ceil(count * STRIP_PITCH * scale), STRIP_PIXEL_HEIGHT * scale);
-                area.connect('repaint', a => this._drawSegment(a, colors));
-                this.actor.add_child(area);
-                return area;
-            };
-            this._segments.push({band, low: row(false), high: row(true)});
-        }
-        this.clear();
-    }
-
-    // Runs once per segment (and again only if the theme or scale changes), never per frame.
-    _drawSegment(area, colors) {
+    // Runs when the line is created or resized, or the palette or theme changes; never per frame.
+    _draw(area) {
         const cr = area.get_context();
-        const fg = themeForeground(area);
-        colors.forEach((color, i) => {
-            const c = color ?? fg;
-            cr.setSourceRGBA(c[0], c[1], c[2], 1);
-            cr.rectangle(i * STRIP_PITCH, 0, STRIP_PIXEL_WIDTH, STRIP_PIXEL_HEIGHT);
+        const [width, height] = area.get_surface_size();
+        const fg = this._stops ? null : themeForeground(area);
+        const middle = width / 2;
+        for (let x = 0; x < width; x += LINE_GRADIENT_STEP) {
+            const fromMiddle = middle > 0 ? Math.min(1, Math.abs(x + LINE_GRADIENT_STEP / 2 - middle) / middle) : 0;
+            const c = fg ?? gradientColor(this._stops, fromMiddle);
+            // Soften the two ends a little, so a long line doesn't stop abruptly.
+            const alpha = fromMiddle > 0.9 ? 1 - (fromMiddle - 0.9) * 6 : 1;
+            cr.setSourceRGBA(c[0], c[1], c[2], alpha * (fg ? fg[3] : 1));
+            cr.rectangle(x, 0, Math.min(LINE_GRADIENT_STEP, width - x), height);
             cr.fill();
-        });
+        }
         cr.$dispose();
     }
 }

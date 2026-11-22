@@ -35,13 +35,18 @@ build_variant legacy '["42", "43", "44"]'
 build_variant esm '["45", "46", "47", "48", "49", "50"]'
 echo "Built build/legacy (GNOME 42-44) and build/esm (GNOME 45+), version $VERSION"
 
+# Each release carries every zip twice: once with its version in the name, and once under a
+# fixed name, so https://github.com/saikatnjm/tempo/releases/latest/download/<fixed name> always
+# downloads the newest version (the website's download buttons use those links).
 if [ "${1:-}" = zip ]; then
+    rm -rf "$ROOT/dist"
     mkdir -p "$ROOT/dist"
-    for pair in legacy:gnome42-44 esm:gnome45+; do
+    for pair in legacy:gnome42-44 esm:gnome45-plus; do
         variant=${pair%%:*}
-        zipfile=$ROOT/dist/tempo-$VERSION-${pair#*:}.shell-extension.zip
-        rm -f "$zipfile"
+        name=${pair#*:}
+        zipfile=$ROOT/dist/tempo-$VERSION-$name.shell-extension.zip
         (cd "$ROOT/build/$variant/$UUID" && zip -q -r "$zipfile" .)
-        echo "Wrote ${zipfile#"$ROOT"/}"
+        cp "$zipfile" "$ROOT/dist/tempo-$name.shell-extension.zip"
+        echo "Wrote dist/tempo-$VERSION-$name.shell-extension.zip and dist/tempo-$name.shell-extension.zip"
     done
 fi

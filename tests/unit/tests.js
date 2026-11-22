@@ -85,6 +85,24 @@ equal('proc stat null', parseProcStat(null), null);
 equal('cpu MHz', parseCpuMhz('processor\t: 0\ncpu MHz\t\t: 1000.000\nprocessor\t: 1\ncpu MHz\t\t: 3000.000\n'), 2000);
 equal('cpu MHz missing (ARM)', parseCpuMhz('processor\t: 0\nBogoMIPS\t: 108.00\n'), null);
 
+// ---- fans ----
+const F = (name, rpm, priority) => ({name, rpm, priority});
+equal('fans: processor fan first, then the fastest',
+    fansToShow([F('Fan 1', 1500, 1), F('CPU Fan', 900, 2), F('Fan 3', 2100, 1)], 20000, 4),
+    [{name: 'CPU Fan', rpm: 900}, {name: 'Fan 3', rpm: 2100}, {name: 'Fan 1', rpm: 1500}]);
+equal('fans: empty desktop connectors (0 RPM) are left out',
+    fansToShow([F('Fan 1', 0, 1), F('Fan 2', 1200, 1), F('Fan 4', 0, 1)], 20000, 4), [{name: 'Fan 2', rpm: 1200}]);
+equal('fans: a stopped processor fan is still listed',
+    fansToShow([F('Processor Fan', 0, 2), F('Graphics fan', 1800, 0)], 20000, 4),
+    [{name: 'Processor Fan', rpm: 0}, {name: 'Graphics fan', rpm: 1800}]);
+equal('fans: impossible readings are dropped',
+    fansToShow([F('Fan', 65280, 1), F('Processor Fan', 3000, 2)], 20000, 4), [{name: 'Processor Fan', rpm: 3000}]);
+equal('fans: all still -> one line saying so',
+    fansToShow([F('Fan 1', 0, 1), F('Graphics fan', 0, 0)], 20000, 4), [{name: 'Fan 1', rpm: 0}]);
+equal('fans: nothing readable', fansToShow([F('Fan', NaN, 1), F('Fan', 65280, 2)], 20000, 4), []);
+equal('fans: at most the limit', fansToShow([F('a', 1, 1), F('b', 2, 1), F('c', 3, 1)], 20000, 2).length, 2);
+equal('fans: labels', [fanPriority('CPU Fan', 'nct6798'), fanPriority('', 'it8688'), fanPriority('', 'amdgpu'), fanPriority('Processor Fan', 'dell_smm')], [2, 1, 0, 2]);
+
 // ---- spectrum ----
 const span = SPECTRUM_HIGH_HZ / SPECTRUM_LOW_HZ;
 for (const frequency of [60, 180, 440, 1200, 3000, 6000]) {

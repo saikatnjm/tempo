@@ -6,6 +6,32 @@ const USER_HZ = 100;          // clock ticks per second in /proc/<pid>/stat on L
 const PROC_SLICE = 32;        // processes read per main-loop slice (about 1 ms)
 const TOP_PROCESSES = 4;
 const HWMON_MAX = 32;
+const FAN_INPUTS_MAX = 10;         // fan1_input .. fan10_input per sensor chip
+// Chips that report graphics-card fans; the processor fan is preferred over those.
+const GPU_HWMON = ['amdgpu', 'radeon', 'nouveau', 'nvidia', 'xe', 'i915'];
+
+/** "fan2_label" text -> how strongly it suggests the processor fan (2 best, 0 unknown). */
+function fanPriority(label, chip) {
+    if (/cpu|processor/i.test(label))
+        return 2;
+    return GPU_HWMON.includes(chip) || /gpu|vga/i.test(label) ? 0 : 1;
+}
+
+/**
+ * Which fans to list, from readings [{name, rpm, priority}] (rpm NaN when unreadable).
+ * Impossible readings are dropped. Fans standing still are dropped too (desktop boards report
+ * every empty connector as 0 RPM), except a processor fan, which shows as stopped. If every fan
+ * is still, the most likely one is kept, so the menu still says the fans are stopped.
+ * Returns at most `limit` entries {name, rpm}: processor fans first, then the fastest.
+ */
+function fansToShow(readings, maxRpm, limit) {
+    const valid = readings.filter(r => Number.isFinite(r.rpm) && r.rpm >= 0 && r.rpm <= maxRpm);
+    const byImportance = (a, b) => b.priority - a.priority || b.rpm - a.rpm;
+    let shown = valid.filter(r => r.rpm > 0 || r.priority === 2);
+    if (shown.length === 0 && valid.length > 0)
+        shown = [valid.sort(byImportance)[0]];
+    return shown.sort(byImportance).slice(0, limit).map(r => ({name: r.name, rpm: r.rpm}));
+}
 const SAMPLE_MIN_WINDOW_S = 0.9;   // shorter windows give wild percentages
 
 /** First line of /proc/stat -> cumulative {idle, total} ticks, or null. */
@@ -170,7 +196,20 @@ function findSensors() {
         cpu,
         gpu: firstNamed(['amdgpu', 'radeon', 'nouveau', 'nvidia', 'xe', 'i915']),
         disk: firstNamed(['nvme', 'drivetemp']),
-        fans: monitors.map(m => `${m.dir}/fan1_input`).filter(exists),
+        // Every fan input of every chip: on desktop boards the processor fan is often fan2 or
+        // higher. Each is {path, priority, label, number, graphics}; see fanPriority().
+        fans: monitors.flatMap(m => {
+            const found = [];
+            for (let i = 1; i <= FAN_INPUTS_MAX; i++) {
+                const path = `${m.dir}/fan${i}_input`;
+                if (exists(path)) {
+                    const label = (readText(`${m.dir}/fan${i}_label`) ?? '').trim();
+                    const priority = fanPriority(label, m.name);
+                    found.push({path, priority, label, number: i, graphics: priority === 0});
+                }
+            }
+            return found;
+        }),
     };
 }
 

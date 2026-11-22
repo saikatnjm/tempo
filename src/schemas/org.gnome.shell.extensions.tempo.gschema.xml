@@ -9,7 +9,6 @@
   <enum id="org.gnome.shell.extensions.tempo.MusicStyle">
     <value nick="bars" value="0"/>
     <value nick="strip" value="1"/>
-    <value nick="both" value="2"/>
   </enum>
   <enum id="org.gnome.shell.extensions.tempo.TemperatureUnit">
     <value nick="celsius" value="0"/>
@@ -45,7 +44,7 @@
     <key name="music-style" enum="org.gnome.shell.extensions.tempo.MusicStyle">
       <default>'bars'</default>
       <summary>How music is shown</summary>
-      <description>"bars": ten small bars next to the rings. "strip": a thin row of pixels along the whole top bar, in the palette's colours. "both": the two together.</description>
+      <description>"bars": ten small bars next to the rings. "strip": the level line, one thin line along the whole top bar that grows out from the middle with the loudness.</description>
     </key>
     <key name="music-fps" type="i">
       <range min="5" max="30"/>

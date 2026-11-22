@@ -100,7 +100,8 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <p class="tagline">Your system and your music, at a glance.</p>
   <p class="sub">CPU and memory rings, temperature, network speed and music bars for the GNOME top bar. Small, quiet, and every part has its own switch.</p>
   <div class="buttons">
-    <a class="button primary" href="https://github.com/saikatnjm/tempo#install">Install</a>
+    <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">Download for GNOME 45+</a>
+    <a class="button" href="install.html">Install guide</a>
     <a class="button" href="https://github.com/saikatnjm/tempo">Source on GitHub</a>
   </div>
 
@@ -126,7 +127,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     <div class="card"><h3>Temperature</h3><p>The processor's temperature, turning amber above 75 °C and red above 85 °C. Celsius or Fahrenheit.</p></div>
     <div class="card"><h3>Music visuals</h3><p>Ten small bars that move with the sound while a media player is playing, and fade away when it stops.</p></div>
     <div class="card"><h3>Now playing</h3><p>Rest the pointer on the bars to see what is playing and in which app. The menu shows it too, and a click takes you there.</p></div>
-    <div class="card"><h3>Light strip</h3><p>Or show the music as a row of pixels along the whole top bar, in the palette's colours. Or both.</p></div>
+    <div class="card"><h3>Level line</h3><p>Or show the music as one thin line along the whole top bar that grows out from the middle with the loudness.</p></div>
     <div class="card"><h3>Network speed</h3><p>Download over upload in two small lines of fixed width, so the top bar never shuffles sideways as the numbers change.</p></div>
     <div class="card"><h3>One menu</h3><p>Click for processor speed and load, memory and swap, graphics, disk and fan readings, and the four busiest apps.</p></div>
     <div class="card"><h3>Four palettes</h3><p>Ember, Aurora, Orchid, or Mono, which simply uses the top bar's own text colour.</p></div>
@@ -140,7 +141,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <div class="metrics" id="metrics">
     <div class="metric"><b>0</b><span>processes and timers when every part is off, when nothing is playing, or while a fullscreen window hides the top bar</span></div>
     <div class="metric"><b>0 %</b><span>measurable cost for the rings, temperature and network speed</span></div>
-    <div class="metric"><b>2.1 %</b><span>for the small bars at the default 8 updates a second, in a clean test</span></div>
+    <div class="metric"><b>1.4 %</b><span>for the level line at the default 8 updates a second, in a clean test (small bars: 2.0 %)</span></div>
     <div class="metric"><b>1 %</b><span>and 6 MB for the sound recorder, only while music is shown</span></div>
     <div class="metric"><b>115 KB</b><span>installed. No compiled code, no background service</span></div>
   </div>
@@ -149,11 +150,11 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     <thead><tr><th>State, in a clean test (<code>make bench</code>)</th><th>Added cost</th></tr></thead>
     <tbody>
       <tr><td>Rings, temperature and network shown</td><td>Nothing measurable</td></tr>
-      <tr><td>Small bars at 8 updates a second (the default)</td><td>2.1 %</td></tr>
-      <tr><td>Small bars at 12 updates a second</td><td>3.0 %</td></tr>
-      <tr><td>Small bars at 20 updates a second</td><td>5.4 %</td></tr>
-      <tr><td>Light strip at 12 updates a second</td><td>3.5 %</td></tr>
-      <tr><td>Bars and light strip at 12 updates a second</td><td>4.6 %</td></tr>
+      <tr><td>Level line at 8 updates a second (the default rate)</td><td>1.4 %</td></tr>
+      <tr><td>Level line at 12 updates a second</td><td>2.0 %</td></tr>
+      <tr><td>Small bars at 8 updates a second</td><td>2.0 %</td></tr>
+      <tr><td>Small bars at 12 updates a second</td><td>2.8 %</td></tr>
+      <tr><td>Small bars at 20 updates a second</td><td>4.9 %</td></tr>
     </tbody>
   </table>
   </div>
@@ -164,7 +165,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     <li><b>Slow sensors never block your desktop.</b> Hardware sensors are read on a worker thread, and the process list in small slices between frames.</li>
     <li><b>Menu details are read only while the menu is open</b>, and players are asked what they are playing only while the pointer rests on the bars.</li>
     <li><b>Nothing is listened to that you can't see.</b> While a fullscreen window hides the top bar, the recorder is stopped.</li>
-    <li><b>The one real cost is animation.</b> Moving with music means GNOME Shell repaints a piece of the top bar for every update. That is why the update rate is a setting with a modest default, why music is off until you switch it on, and why the light strip, which repaints a strip as wide as the screen, costs the most.</li>
+    <li><b>The one real cost is animation.</b> Moving with music means GNOME Shell repaints a piece of the top bar for every update. That is why the update rate is a setting with a modest default, and why music is off until you switch it on. The level line is the lightest choice: it is drawn once and afterwards only stretched by the graphics card.</li>
   </ul>
 </section>
 
@@ -183,8 +184,8 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
       <p class="caption">Ember, Aurora, Orchid and Mono, three times life size.</p>
       <figure style="margin-top: 20px"><img src="assets/tip.png" width="412" alt="A small card under the music bars naming the song and the app" loading="lazy"></figure>
       <p class="caption">Rest the pointer on the bars to see what is playing, and in which app.</p>
-      <figure style="margin-top: 20px"><img src="assets/strip-detail.png" alt="The light strip: two rows of small pixels along the bottom edge of the top bar" loading="lazy"></figure>
-      <p class="caption">The light strip: each bar lights its own stretch of the top bar.</p>
+      <figure style="margin-top: 20px"><img src="assets/strip-detail.png" alt="The level line: a thin line along the bottom edge of the top bar, longer in the middle" loading="lazy"></figure>
+      <p class="caption">The level line grows out from the middle as the music gets louder.</p>
       <figure style="margin-top: 20px"><img src="assets/settings.png" alt="Tempo's settings window" loading="lazy"></figure>
     </div>
   </div>
@@ -214,10 +215,16 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
 
 <section class="wrap" id="install">
   <h2>Install</h2>
-  <p class="lead">Download the zip for your GNOME Shell version from the <a href="https://github.com/saikatnjm/tempo/releases/latest">releases page</a>, then:</p>
-<pre><code>gnome-extensions install --force tempo-*.shell-extension.zip
+  <p class="lead">Both buttons download the newest version. Run <code>gnome-shell --version</code> if you're not sure which GNOME you have.</p>
+  <div class="buttons" style="justify-content: flex-start; margin-bottom: 22px">
+    <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">GNOME 45 and newer</a>
+    <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
+  </div>
+  <p class="lead">Then install it, log out and back in, and switch it on:</p>
+<pre><code>gnome-extensions install --force ~/Downloads/tempo-gnome45-plus.shell-extension.zip
 # log out and back in, then:
 gnome-extensions enable tempo@saikatnjm.github.io</code></pre>
+  <p class="lead">The <a href="install.html">install guide</a> has the steps for each distribution, updating, removing, and fixes for common problems. Earlier versions are on the <a href="https://github.com/saikatnjm/tempo/releases">releases page</a>.</p>
   <p class="lead">Or from source, without root access:</p>
 <pre><code>git clone https://github.com/saikatnjm/tempo.git
 cd tempo

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Install Tempo on Linux</title>
+<meta name="description" content="Step-by-step instructions for installing the Tempo GNOME Shell extension on Ubuntu, Fedora, Debian, Arch, openSUSE, Pop!_OS, Zorin OS, RHEL and other GNOME desktops.">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<style>
+:root {
+  --bg: #121214; --surface: #1b1b1f; --line: rgba(255, 255, 255, .09);
+  --text: #f2f2f7; --muted: #a5a5b0;
+  --p1: #ffd166; --p2: #ff9f43; --p3: #ff5e7e;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.65 Inter, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif;
+}
+a { color: var(--p2); }
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+nav { display: flex; align-items: center; gap: 12px; padding: 22px 0; }
+nav img { width: 34px; height: 34px; }
+nav a.home { color: var(--text); font-weight: 700; text-decoration: none; font-size: 20px; }
+nav .spacer { flex: 1; }
+h1 { font-size: clamp(34px, 6vw, 48px); line-height: 1.15; margin: 26px 0 10px; letter-spacing: -.02em; }
+h2 { font-size: 26px; line-height: 1.25; margin: 0 0 10px; letter-spacing: -.01em; }
+h3 { font-size: 18px; margin: 22px 0 6px; }
+.lead { color: var(--muted); margin: 0 0 22px; }
+section { padding: 40px 0; border-top: 1px solid var(--line); }
+.buttons { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0 10px; }
+.button {
+  display: inline-block; padding: 11px 22px; border-radius: 999px; font-weight: 600;
+  text-decoration: none; border: 1px solid var(--line); color: var(--text);
+}
+.button.primary { background: linear-gradient(100deg, var(--p1), var(--p2) 55%, var(--p3)); color: #1c1206; border: 0; }
+.note { color: var(--muted); font-size: 15px; }
+ol.steps { padding-left: 0; list-style: none; counter-reset: step; }
+ol.steps > li { counter-increment: step; position: relative; padding: 0 0 22px 48px; }
+ol.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(120deg, var(--p1), var(--p3)); color: #1c1206; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+ol.steps h3 { margin-top: 2px; }
+pre { background: #0c0c0e; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; overflow-x: auto; font-size: 15px; margin: 8px 0; }
+code { font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", Menlo, monospace; }
+p code, li code, td code { background: #0c0c0e; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: .9em; }
+table { width: 100%; border-collapse: collapse; font-size: 16px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+.scroll { overflow-x: auto; }
+.tag { display: inline-block; font-size: 13px; font-weight: 600; border-radius: 999px; padding: 1px 10px; white-space: nowrap; }
+.tag.new { background: rgba(255, 159, 67, .16); color: var(--p2); }
+.tag.old { background: rgba(255, 94, 126, .14); color: var(--p3); }
+.tag.no { background: rgba(255, 255, 255, .08); color: var(--muted); }
+details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+summary { cursor: pointer; font-weight: 600; }
+details p, details pre { margin: 8px 0 0; }
+details p { color: var(--muted); }
+footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top: 1px solid var(--line); text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav>
+  <img src="assets/logo.svg" alt="" width="34" height="34">
+  <a class="home" href="./">Tempo</a>
+  <span class="spacer"></span>
+  <a href="https://github.com/saikatnjm/tempo">GitHub</a>
+</nav>
+
+<h1>Install Tempo</h1>
+<p class="lead">Tempo is a GNOME Shell extension. It works on any Linux distribution that uses the GNOME desktop, version 42 or newer, and takes about two minutes to install. You don't need administrator rights.</p>
+
+<section id="download">
+  <h2>Download</h2>
+  <p class="lead">Pick the file that matches your GNOME version. Both buttons always download the newest release.</p>
+  <div class="buttons">
+    <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">GNOME 45 and newer</a>
+    <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
+  </div>
+  <p class="note">Not sure which one? Step 1 below shows how to check, and the table further down lists each distribution. Looking for an earlier version? Every release is on the <a href="https://github.com/saikatnjm/tempo/releases">releases page</a>, with its changes listed.</p>
+</section>
+
+<section id="steps">
+  <h2>Steps</h2>
+  <p class="lead">The same on every distribution. Open a terminal (Ctrl+Alt+T on most systems) for the commands.</p>
+  <ol class="steps">
+    <li>
+      <h3>Check your GNOME version</h3>
+<pre><code>gnome-shell --version</code></pre>
+      <p class="note">45 or higher: use the <b>GNOME 45 and newer</b> file. 42, 43 or 44: use the <b>GNOME 42, 43 and 44</b> file. Lower than 42, or "command not found": Tempo can't run on this desktop (see <a href="#not-supported">below</a>).</p>
+    </li>
+    <li>
+      <h3>Download the matching file</h3>
+      <p class="note">Use the buttons above. Your browser saves it in your Downloads folder.</p>
+    </li>
+    <li>
+      <h3>Install it</h3>
+<pre><code>gnome-extensions install --force ~/Downloads/tempo-gnome45-plus.shell-extension.zip</code></pre>
+      <p class="note">For GNOME 42 to 44, the file is called <code>tempo-gnome42-44.shell-extension.zip</code>. If your browser saved it elsewhere, use that path.</p>
+    </li>
+    <li>
+      <h3>Log out and back in</h3>
+      <p class="note">GNOME only notices a new extension after you log in again. On the older X11 session you can instead press Alt+F2, type <code>r</code> and press Enter.</p>
+    </li>
+    <li>
+      <h3>Switch it on</h3>
+<pre><code>gnome-extensions enable tempo@saikatnjm.github.io</code></pre>
+      <p class="note">Or open the <b>Extensions</b> app (or Extension Manager) and turn on Tempo. The rings appear on the right of the top bar.</p>
+    </li>
+    <li>
+      <h3>Optional: music visuals</h3>
+      <p class="note">To let Tempo move with your music, click it, open <b>Settings</b> and turn on <b>React to music</b>. This needs the small <code>parec</code> tool. Most GNOME desktops already have it; the table below shows the package name if yours doesn't.</p>
+    </li>
+  </ol>
+</section>
+
+<section id="distributions">
+  <h2>By distribution</h2>
+  <p class="lead">Which file to download, and the package that provides <code>parec</code> for the music visuals.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Distribution</th><th>GNOME</th><th>File</th><th>For music visuals</th></tr></thead>
+    <tbody>
+      <tr><td>Ubuntu 26.04 LTS, 25.10</td><td>50, 49</td><td><span class="tag new">45 and newer</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
+      <tr><td>Ubuntu 24.04 LTS</td><td>46</td><td><span class="tag new">45 and newer</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
+      <tr><td>Ubuntu 22.04 LTS</td><td>42</td><td><span class="tag old">42, 43 and 44</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
+      <tr><td>Debian 13</td><td>48</td><td><span class="tag new">45 and newer</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
+      <tr><td>Debian 12</td><td>43</td><td><span class="tag old">42, 43 and 44</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
+      <tr><td>Fedora 41 to 44 (Workstation)</td><td>47 to 50</td><td><span class="tag new">45 and newer</span></td><td><code>sudo dnf install pulseaudio-utils</code></td></tr>
+      <tr><td>RHEL, AlmaLinux, Rocky Linux 10</td><td>47</td><td><span class="tag new">45 and newer</span></td><td><code>sudo dnf install pulseaudio-utils</code></td></tr>
+      <tr><td>Arch Linux, Manjaro, EndeavourOS (GNOME)</td><td>newest</td><td><span class="tag new">45 and newer</span></td><td><code>sudo pacman -S libpulse</code></td></tr>
+      <tr><td>openSUSE Tumbleweed, Leap 15.6 (GNOME)</td><td>newest, 45</td><td><span class="tag new">45 and newer</span></td><td><code>sudo zypper install pulseaudio-utils</code></td></tr>
+      <tr><td>Pop!_OS 22.04</td><td>42</td><td><span class="tag old">42, 43 and 44</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
+      <tr><td>Zorin OS 17</td><td>43</td><td><span class="tag old">42, 43 and 44</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">Your distribution isn't listed? It doesn't matter: if <code>gnome-shell --version</code> shows 42 or newer, Tempo works. The music tool works with both PulseAudio and PipeWire.</p>
+</section>
+
+<section id="update">
+  <h2>Update</h2>
+  <p class="lead">Download the newest file with the buttons above and run step 3 again, then log out and back in. Your settings are kept.</p>
+</section>
+
+<section id="remove">
+  <h2>Remove</h2>
+<pre><code>gnome-extensions uninstall tempo@saikatnjm.github.io</code></pre>
+  <p class="note">This removes Tempo completely. To also forget its settings: <code>dconf reset -f /org/gnome/shell/extensions/tempo/</code></p>
+</section>
+
+<section id="not-supported">
+  <h2>Not supported</h2>
+  <p class="lead">Tempo only runs inside GNOME Shell, so it doesn't work on:</p>
+  <ul class="note">
+    <li>KDE Plasma (Kubuntu, KDE neon, Fedora KDE), Xfce (Xubuntu), Cinnamon (Linux Mint), MATE, LXQt, Budgie or COSMIC (Pop!_OS 24.04)</li>
+    <li>GNOME 41 and older, such as Ubuntu 20.04, Debian 11 and RHEL 9</li>
+  </ul>
+</section>
+
+<section id="help">
+  <h2>If something doesn't work</h2>
+  <details><summary>"Extension tempo@saikatnjm.github.io doesn't exist"</summary>
+    <p>GNOME hasn't loaded it yet. Log out and back in (step 4), then run the enable command again.</p></details>
+  <details><summary>It doesn't appear in the top bar</summary>
+    <p>Check its state:</p>
+<pre><code>gnome-extensions info tempo@saikatnjm.github.io</code></pre>
+    <p>If the state is ERROR, you probably installed the file for the other GNOME version: install the other one (step 3) and log in again. If that doesn't help, these lines show why:</p>
+<pre><code>journalctl -b /usr/bin/gnome-shell | grep -i tempo</code></pre></details>
+  <details><summary>The music visuals don't move</summary>
+    <p>Check that <b>React to music</b> is on, that sound is actually playing, and that <code>parec</code> is installed (table above). The player must support standard media controls: if it appears in GNOME's media controls in the notification list, it does.</p></details>
+  <details><summary>The temperature isn't shown</summary>
+    <p>Your computer has no temperature sensor Tempo recognises yet. Please <a href="https://github.com/saikatnjm/tempo/issues">open an issue</a> with the output of <code>grep . /sys/class/hwmon/hwmon*/name</code>.</p></details>
+  <details><summary>Still stuck?</summary>
+    <p><a href="https://github.com/saikatnjm/tempo/issues">Open an issue on GitHub</a> with your distribution, the output of <code>gnome-shell --version</code>, and what you see.</p></details>
+</section>
+</div>
+
+<footer class="wrap">
+  <a href="./">Tempo</a> ·
+  <a href="https://github.com/saikatnjm/tempo">Source</a> ·
+  <a href="https://github.com/saikatnjm/tempo/releases">All versions</a> ·
+  <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a><br>
+  Free software under the GPL-3.0-or-later licence. Not affiliated with or endorsed by the GNOME Foundation.
+</footer>
+</body>
+</html>

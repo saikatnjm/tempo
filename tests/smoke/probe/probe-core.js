@@ -99,7 +99,7 @@ class TempoProbe {
         return parts;
     }
 
-    // Actors Tempo adds outside its button (the light strip, the hover tip), by style class.
+    // Actors Tempo adds outside its button (the level line, the hover tip), by style class.
     _chrome(styleClass) {
         return Main.uiGroup.get_children().find(a => a.has_style_class_name?.(styleClass)) ?? null;
     }
@@ -151,8 +151,8 @@ class TempoProbe {
             ['readings + small bars at 8 fps', true, true, 'bars', 8],
             ['readings + small bars at 12 fps', true, true, 'bars', 12],
             ['readings + small bars at 20 fps', true, true, 'bars', 20],
-            ['readings + light strip at 12 fps', true, true, 'strip', 12],
-            ['readings + bars and light strip at 12 fps', true, true, 'both', 12],
+            ['readings + level line at 8 fps', true, true, 'strip', 8],
+            ['readings + level line at 12 fps', true, true, 'strip', 12],
             // Where does the bars' cost go? The same again with the drawing switched off, which
             // leaves only the listening and the maths.
             ['readings + small bars at 12 fps, not drawn', true, true, 'bars', 12, true],
@@ -347,30 +347,37 @@ class TempoProbe {
             await probeSleep(600);
             this._check('hover: the tip goes away', this._chrome('tempo-tip') === null || !this._chrome('tempo-tip').visible);
 
-            // The light strip: absent with "bars", spans the top bar with "both", alone with "strip".
-            this._check('strip: absent by default', this._chrome('tempo-strip') === null);
-            settings.set_string('music-style', 'both');
+            // The level line: absent with "bars"; with "strip" it spans the top bar and the small
+            // bars step aside.
+            this._check('level line: absent by default', this._chrome('tempo-strip') === null);
+            settings.set_string('music-style', 'strip');
             await probeSleep(1500);
             const strip = this._chrome('tempo-strip');
             const panelBox = Main.layoutManager.panelBox;
-            this._check('strip: appears when switched on', strip !== null && strip.visible && strip.opacity === 255);
+            this._check('level line: appears when chosen', strip !== null && strip.visible && strip.opacity === 255);
+            this._check('level line: the small bars are hidden', this._parts().bars?.visible === false);
             if (strip) {
-                this._check('strip: as wide as the top bar', strip.width === panelBox.width, `${strip.width} vs ${panelBox.width}`);
-                this._check('strip: sits on the bottom edge of the top bar', strip.height > 0 && strip.y + strip.height === panelBox.y + panelBox.height,
+                this._check('level line: as wide as the top bar', strip.width === panelBox.width, `${strip.width} vs ${panelBox.width}`);
+                this._check('level line: sits on the bottom edge of the top bar', strip.height > 0 && strip.y + strip.height === panelBox.y + panelBox.height,
                     `y ${strip.y}, height ${strip.height}, panel ${panelBox.height}`);
-                this._check('strip: does not take clicks', strip.reactive === false);
+                this._check('level line: does not take clicks', strip.reactive === false);
+                this._check('level line: grows from the middle', strip.pivot_point.x === 0.5);
+                const lengths = new Set();
+                for (let i = 0; i < 12; i++) {
+                    lengths.add(Math.round(strip.scale_x * 1000));
+                    await probeSleep(150);
+                }
+                const longest = Math.max(...lengths) / 1000;
+                this._check('level line: stretches out with the sound', longest > 0.1, `longest ${longest}`);
+                // A steady test tone keeps one length; real music must make it move.
+                if (GLib.getenv('TEMPO_SMOKE_SOUND'))
+                    this._check('level line: grows and shrinks with the music', lengths.size >= 3, `${lengths.size} different lengths`);
             }
-            this._check('both: the small bars are shown too', this._parts().bars?.visible === true);
             await probeScreenshot(`${this._out}/strip.png`);
-            settings.set_string('music-style', 'strip');
-            await probeSleep(700);
-            this._check('strip only: the strip stays', this._chrome('tempo-strip')?.opacity === 255);
-            this._check('strip only: the small bars are hidden', this._parts().bars?.visible === false);
-            await probeScreenshot(`${this._out}/strip-only.png`);
             settings.set_string('music-style', 'bars');
             await probeSleep(700);
-            this._check('bars only: the strip is gone', this._chrome('tempo-strip') === null);
-            this._check('bars only: the small bars are back', this._parts().bars?.visible === true);
+            this._check('small bars: the level line is gone', this._chrome('tempo-strip') === null);
+            this._check('small bars: the bars are back', this._parts().bars?.visible === true);
         }
 
         // Every palette, and the other temperature unit.
@@ -406,7 +413,7 @@ class TempoProbe {
             settings.reset(key);
         settings.set_boolean('show-network', true);
         settings.set_boolean('music-visuals', true);
-        settings.set_string('music-style', 'both');
+        settings.set_string('music-style', 'strip');
         await probeSleep(800);
 
         // Disable and enable twice: nothing may be left behind, nothing may break.
@@ -414,7 +421,7 @@ class TempoProbe {
             Main.extensionManager.disableExtension(TEMPO_UUID);
             await probeSleep(800);
             this._check(`round ${round}: button is gone after disabling`, this._button() === null);
-            this._check(`round ${round}: strip and tip are gone after disabling`,
+            this._check(`round ${round}: level line and tip are gone after disabling`,
                 this._chrome('tempo-strip') === null && this._chrome('tempo-tip') === null);
             Main.extensionManager.enableExtension(TEMPO_UUID);
             await probeSleep(1500);
@@ -425,8 +432,10 @@ class TempoProbe {
         }
         if (this._audio) {
             await probeSleep(3500);
-            this._check('music bars come back after re-enabling', this._parts().bars?.visible === true);
-            this._check('strip comes back after re-enabling', this._chrome('tempo-strip')?.opacity === 255);
+            this._check('level line comes back after re-enabling', this._chrome('tempo-strip')?.opacity === 255);
+            settings.set_string('music-style', 'bars');
+            await probeSleep(1500);
+            this._check('music bars come back after switching to them', this._parts().bars?.visible === true);
         }
         settings.set_string('music-style', 'bars');
 
