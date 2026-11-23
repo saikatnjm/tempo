@@ -92,7 +92,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
   </div>
   <p class="note">Not sure which one? Step 1 below shows how to check, and the table further down lists each distribution. Looking for an earlier version? <a href="#versions">Every version</a> is listed below with its own download links.</p>
-  <p class="note">On this page: <a href="#steps">install</a> · <a href="#distributions">by distribution</a> · <a href="#update">update</a> · <a href="#versions">all versions</a> · <a href="#remove">remove</a> · <a href="#fan">fan control</a> · <a href="#help">help</a></p>
+  <p class="note">On this page: <a href="#steps">install</a> · <a href="#distributions">by distribution</a> · <a href="#update">update</a> · <a href="#versions">all versions</a> · <a href="#uninstall">uninstall</a> · <a href="#fan">fan control</a> · <a href="#help">help</a></p>
 </section>
 
 <section id="steps">
@@ -197,23 +197,27 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <p class="note">The full list of changes is in the <a href="https://github.com/saikatnjm/tempo/blob/main/CHANGELOG.md">changelog</a>, and every release with its files is on the <a href="https://github.com/saikatnjm/tempo/releases">releases page</a>. Version 1.0.0 does not run on GNOME 50.</p>
 </section>
 
-<section id="remove">
-  <h2>Remove</h2>
+<section id="uninstall">
+  <span id="remove"></span>
+  <h2>Uninstall</h2>
+  <p class="lead">Removing Tempo takes one command, and nothing is left behind.</p>
   <ol class="steps">
     <li>
       <h3>If you installed the optional fan control, remove that first</h3>
       <p class="note">In Tempo's <b>Settings</b>, under <b>Fan control</b>, press <b>Remove</b>. (Or, from the source folder: <code>sudo bash fan/install.sh remove</code>.) Every fan goes back to the computer's own control. Skip this step if you never installed it.</p>
     </li>
     <li>
-      <h3>Remove Tempo</h3>
+      <h3>Uninstall Tempo</h3>
 <pre><code>gnome-extensions uninstall tempo@saikatnjm.github.io</code></pre>
-      <p class="note">Or open the <b>Extensions</b> app and press Remove on Tempo. Nothing of it keeps running, and nothing else was ever installed: Tempo is one folder in your home directory.</p>
+      <p class="note">Or open the <b>Extensions</b> app (or Extension Manager), find Tempo and choose <b>Remove</b>. It disappears from the top bar at once; you don't need to log out.</p>
     </li>
     <li>
       <h3>Optional: forget its settings too</h3>
 <pre><code>dconf reset -f /org/gnome/shell/extensions/tempo/</code></pre>
     </li>
   </ol>
+  <p class="note">That is everything. Tempo is one folder in your home directory (<code>~/.local/share/gnome-shell/extensions/tempo@saikatnjm.github.io</code>); nothing else was ever installed. If you installed from source, <code>make uninstall</code> in the folder you cloned does step 2.</p>
+  <p class="note"><b>Only want it out of the way for a while?</b> Switch it off instead: <code>gnome-extensions disable tempo@saikatnjm.github.io</code>, or the switch in the Extensions app. <code>enable</code> switches it back on, with your settings as they were.</p>
 </section>
 
 <section id="fan">
@@ -259,6 +263,8 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
 <footer class="wrap">
   <a href="./">Tempo</a> ·
   <a href="https://github.com/saikatnjm/tempo">Source</a> ·
+  <a href="#update">Update</a> ·
+  <a href="#uninstall">Uninstall</a> ·
   <a href="https://github.com/saikatnjm/tempo/releases">All versions</a> ·
   <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a><br>
   Free software under the GPL-3.0-or-later licence. Not affiliated with or endorsed by the GNOME Foundation.

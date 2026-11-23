@@ -22,6 +22,8 @@
 
 **Website:** <https://saikatnjm.github.io/tempo/>
 
+**Jump to:** [Install](#install) · [Update](#update) · [Uninstall](#uninstall) · [All versions](#all-versions) · [Settings](#settings) · [Questions](#questions)
+
 Tempo is one small GNOME Shell extension that does six things people usually install separately,
 and costs next to nothing to run (the readings add no measurable processor load; every figure
 is [measured](#light-by-design)):
@@ -301,23 +303,34 @@ Every version stays available. To go back to one, install its zip exactly like a
 What changed in each is in the [changelog](CHANGELOG.md); the
 [releases page](https://github.com/saikatnjm/tempo/releases) has every file.
 
-### Remove
+## Uninstall
 
-1. If you installed the optional fan control, remove it first: **Settings → Fan control →
-   Remove** (or `sudo bash fan/install.sh remove`). Every fan goes back to the computer.
-2. Remove Tempo:
+Removing Tempo takes one command, and nothing is left behind.
+
+1. **Only if you installed the optional fan control:** remove it first, in Tempo's
+   **Settings → Fan control → Remove** (or `sudo bash fan/install.sh remove`). Every fan goes
+   back to the computer's own control. Skip this step if you never installed it.
+2. **Uninstall Tempo:**
 
    ```sh
    gnome-extensions uninstall tempo@saikatnjm.github.io
    ```
 
-3. Optional, to forget its settings too:
+   Or open the **Extensions** app (or Extension Manager), find Tempo and choose **Remove**.
+   It disappears from the top bar at once; there is no need to log out.
+3. **Optional: forget its settings too:**
 
    ```sh
    dconf reset -f /org/gnome/shell/extensions/tempo/
    ```
 
-Nothing else was ever installed: Tempo is one folder in your home directory.
+That is everything. Tempo is one folder in your home directory
+(`~/.local/share/gnome-shell/extensions/tempo@saikatnjm.github.io`); nothing else was ever
+installed. If you installed from source, `make uninstall` in the cloned folder does step 2.
+
+Only want it out of the way for a while? Switch it off instead of uninstalling:
+`gnome-extensions disable tempo@saikatnjm.github.io`, or the switch in the Extensions app.
+Switch it on again with `enable`.
 
 ## Settings
 

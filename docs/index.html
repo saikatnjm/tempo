@@ -90,6 +90,14 @@
     },
     {
      "@type": "Question",
+     "name": "How do I uninstall Tempo?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Run gnome-extensions uninstall tempo@saikatnjm.github.io in a terminal, or open the Extensions app, find Tempo and choose Remove. It disappears at once and nothing is left behind. If you installed the optional fan control, remove that first in Tempo's Settings, under Fan control."
+     }
+    },
+    {
+     "@type": "Question",
      "name": "Is it free?",
      "acceptedAnswer": {
       "@type": "Answer",
@@ -306,7 +314,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     <div class="card"><h3>It costs nothing to watch</h3><p>The rings, the temperature and the internet speed add no measurable processor load. One timer every 3 seconds reads three small files, and nothing is redrawn unless a value changed.</p></div>
     <div class="card"><h3>It is calm to look at</h3><p>Two rings instead of rows of numbers, and a network speed that never changes width. The numbers are one click away, not always in your eye.</p></div>
     <div class="card"><h3>It is measured, not promised</h3><p>Every figure on this page comes from a benchmark in the source code that anyone can run. When Tempo can't be seen, because the screens are off or a fullscreen window is in front, it stops.</p></div>
-    <div class="card"><h3>It leaves no trace</h3><p>250 KB in one folder of your home directory. No compiled code, no background service, no administrator rights. One command removes it.</p></div>
+    <div class="card"><h3>It leaves no trace</h3><p>250 KB in one folder of your home directory. No compiled code, no background service, no administrator rights. <a href="#uninstall">One command removes it</a>.</p></div>
   </div>
 </section>
 
@@ -434,7 +442,11 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
 <pre><code>gnome-extensions install --force ~/Downloads/tempo-gnome45-plus.shell-extension.zip
 # log out and back in, then:
 gnome-extensions enable tempo@saikatnjm.github.io</code></pre>
-  <p class="lead">The <a href="install.html">install guide</a> has the steps for each distribution, <a href="install.html#update">updating</a>, <a href="install.html#remove">removing</a>, and fixes for common problems. <a href="install.html#versions">Every earlier version</a> stays available there too.</p>
+  <p class="lead">The <a href="install.html">install guide</a> has the steps for each distribution, <a href="install.html#update">updating</a>, and fixes for common problems. <a href="install.html#versions">Every earlier version</a> stays available there too.</p>
+  <h3 id="uninstall" style="margin-top: 34px">Uninstall</h3>
+  <p class="lead">One command removes Tempo, and nothing is left behind. It disappears from the top bar at once.</p>
+<pre><code>gnome-extensions uninstall tempo@saikatnjm.github.io</code></pre>
+  <p class="lead">Or open the <b>Extensions</b> app, find Tempo and choose <b>Remove</b>. If you installed the optional fan control, remove that first: Tempo's Settings, Fan control, <b>Remove</b>. The <a href="install.html#uninstall">install guide</a> has every step, including how to forget the settings or only switch Tempo off for a while.</p>
   <p class="lead">Or from source, without root access:</p>
 <pre><code>git clone https://github.com/saikatnjm/tempo.git
 cd tempo
@@ -458,6 +470,7 @@ make install</code></pre>
   <details><summary>Does it slow my computer down or drain the battery?</summary><p>The system readings add no measurable processor load. The music visuals are the one part that costs something: 1.4 to 2.7 % of one processor core at the default rate while music plays, plus about 1 % for the sound recorder, and nothing while it doesn't. While the screens are off, nothing runs at all.</p></details>
   <details><summary>Which Linux distributions does it work on?</summary><p>Any distribution with the GNOME desktop, versions 42 to 50: Ubuntu 22.04 to 26.04, Fedora, Debian 12 and 13, Arch, openSUSE, Pop!_OS 22.04, Zorin OS and others. It does not run on KDE Plasma, Xfce or Cinnamon.</p></details>
   <details><summary>How is it different from other system monitor extensions?</summary><p>It shows less in the top bar on purpose (two rings instead of rows of numbers), it publishes what it costs and how that was measured, and it stops entirely when you can't see it. If you want many numbers in view at once, another extension may suit you better.</p></details>
+  <details><summary>How do I uninstall Tempo?</summary><p>Run gnome-extensions uninstall tempo@saikatnjm.github.io in a terminal, or open the Extensions app, find Tempo and choose Remove. It disappears at once and nothing is left behind. If you installed the optional fan control, remove that first in Tempo's Settings, under Fan control.</p></details>
   <details><summary>Is it free?</summary><p>Yes. Tempo is free and open source under the GPL-3.0-or-later licence, with no accounts, no ads and no network access.</p></details>
   <details><summary>Which app is making that sound?</summary><p>Rest the pointer on the small bars, or open the menu: the song and the app are at the top. Click it there to go to the app.</p></details>
   <details><summary>The bars don't show up</summary><p>Check that "React to music" is on, that something is playing sound, and that the player supports the standard media controls. If it appears in GNOME's media controls in the notification list, it does.</p></details>
@@ -479,6 +492,9 @@ make install</code></pre>
   <a href="desktop-widgets.html">Desktop widgets</a> ·
   <a href="fan-control.html">Fans</a><br>
   Tempo is free software under the GPL-3.0-or-later licence.
+  <a href="install.html">Install</a> ·
+  <a href="install.html#update">Update</a> ·
+  <a href="install.html#uninstall">Uninstall</a> ·
   <a href="https://github.com/saikatnjm/tempo">Source</a> ·
   <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a> ·
   <a href="https://github.com/saikatnjm/tempo/blob/main/CHANGELOG.md">Changelog</a><br>

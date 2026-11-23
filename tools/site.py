@@ -532,6 +532,7 @@ def page_html(page):
 <footer class="wrap">
   <a href="./">Tempo</a> ·
   <a href="install.html">Install</a> ·
+  <a href="install.html#uninstall">Uninstall</a> ·
   <a href="{REPO}">Source</a> ·
   <a href="install.html#versions">All versions</a> ·
   <a href="{REPO}/issues">Report a problem</a><br>
