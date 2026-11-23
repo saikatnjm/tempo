@@ -55,6 +55,10 @@ Two more tools:
   room. The numbers in the README come from these two. Please run `make bench` before and after
   any change that draws or runs on a timer, and say in the pull request what it showed.
 - `tools/screenshots.sh` remakes the pictures in `docs/assets/` from the current build.
+- `tools/site.py` remakes the website's feature pages (`docs/system-monitor.html` and its
+  siblings), `docs/sitemap.xml` and the search-engine data in `docs/index.html`. The texts of
+  those pages live in that script; `docs/index.html` and `docs/install.html` are written by hand.
+  `tools/social-card.py` redraws the picture shown when a link to the site is shared.
 
 ## Ground rules for changes
 

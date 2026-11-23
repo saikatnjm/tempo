@@ -1,0 +1,84 @@
+/* Shared by Tempo's feature pages (made by tools/site.py). The home page and the install guide
+   carry their own styles; the colours and shapes here match theirs. */
+:root {
+  --bg: #121214; --surface: #1b1b1f; --line: rgba(255, 255, 255, .09);
+  --text: #f2f2f7; --muted: #a5a5b0;
+  --p1: #ffd166; --p2: #ff9f43; --p3: #ff5e7e;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 17px/1.65 Inter, system-ui, -apple-system, "Segoe UI", Roboto, Ubuntu, Cantarell, sans-serif;
+}
+a { color: var(--p2); }
+img { max-width: 100%; height: auto; }
+.wrap { max-width: 880px; margin: 0 auto; padding: 0 20px; }
+
+nav { display: flex; align-items: center; gap: 6px 16px; padding: 22px 0 6px; flex-wrap: wrap; }
+nav img { width: 34px; height: 34px; }
+nav a { color: var(--muted); text-decoration: none; font-size: 15px; }
+nav a:hover, nav a[aria-current="page"] { color: var(--text); }
+nav a.home { color: var(--text); font-weight: 700; font-size: 20px; margin-right: 8px; }
+nav .spacer { flex: 1; }
+.crumbs { color: var(--muted); font-size: 14px; margin: 14px 0 0; }
+.crumbs a { color: var(--muted); }
+
+h1 { font-size: clamp(32px, 6vw, 46px); line-height: 1.15; margin: 14px 0 12px; letter-spacing: -.02em; }
+h2 { font-size: 26px; line-height: 1.25; margin: 0 0 12px; letter-spacing: -.01em; }
+h3 { font-size: 18px; margin: 0 0 6px; }
+.lead { color: var(--muted); font-size: 19px; margin: 0 0 22px; max-width: 720px; }
+section { padding: 40px 0; border-top: 1px solid var(--line); }
+section > p { color: var(--muted); max-width: 720px; }
+
+.buttons { display: flex; gap: 12px; flex-wrap: wrap; margin: 18px 0 8px; }
+.button {
+  display: inline-block; padding: 11px 22px; border-radius: 999px; font-weight: 600;
+  text-decoration: none; border: 1px solid var(--line); color: var(--text);
+}
+.button.primary { background: linear-gradient(100deg, var(--p1), var(--p2) 55%, var(--p3)); color: #1c1206; border: 0; }
+.note { color: var(--muted); font-size: 15px; }
+
+.facts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 18px 0 0; list-style: none; }
+.facts li { border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; font-size: 14px; color: var(--muted); }
+.facts b { color: var(--text); }
+
+figure { margin: 30px 0 0; }
+figure img { border-radius: 12px; border: 1px solid var(--line); display: block; }
+figcaption { color: var(--muted); font-size: 14px; margin-top: 10px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; align-items: start; }
+
+ul.points { padding: 0; margin: 0; list-style: none; display: grid; gap: 12px; }
+ul.points li { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 18px; color: var(--muted); }
+ul.points b { color: var(--text); }
+
+table { width: 100%; border-collapse: collapse; font-size: 16px; margin: 6px 0 14px; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+td:first-child { width: 60%; }
+.scroll { overflow-x: auto; }
+
+ol.steps { padding-left: 0; list-style: none; counter-reset: step; margin: 0; }
+ol.steps > li { counter-increment: step; position: relative; padding: 2px 0 16px 48px; color: var(--muted); }
+ol.steps > li b { color: var(--text); }
+ol.steps > li::before {
+  content: counter(step); position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%;
+  background: linear-gradient(120deg, var(--p1), var(--p3)); color: #1c1206; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+code { font-family: ui-monospace, "JetBrains Mono", "DejaVu Sans Mono", Menlo, monospace; }
+p code, li code, td code {
+  background: #0c0c0e; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; font-size: .9em;
+  overflow-wrap: anywhere;
+}
+
+details { border-bottom: 1px solid var(--line); padding: 12px 0; }
+summary { cursor: pointer; font-weight: 600; }
+details p { color: var(--muted); margin: 8px 0 0; }
+
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+a.card { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; text-decoration: none; color: var(--text); }
+a.card:hover { border-color: rgba(255, 255, 255, .25); }
+a.card p { margin: 0; color: var(--muted); font-size: 15px; }
+
+footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top: 1px solid var(--line); text-align: center; }

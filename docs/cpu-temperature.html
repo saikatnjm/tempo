@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CPU temperature in the GNOME top bar on Linux | Tempo</title>
+<meta name="description" content="Show your CPU temperature in the top bar on Ubuntu, Fedora or any Linux with GNOME. AMD, Intel and ARM, with graphics and disk temperature one click away.">
+<meta name="google-site-verification" content="RF5trxrdZtkytEnmTEsT2Wl1QqtxB0JtmKpjnZm3wFc">
+<link rel="canonical" href="https://saikatnjm.github.io/tempo/cpu-temperature.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tempo">
+<meta property="og:title" content="CPU temperature in the GNOME top bar on Linux | Tempo">
+<meta property="og:description" content="Show your CPU temperature in the top bar on Ubuntu, Fedora or any Linux with GNOME. AMD, Intel and ARM, with graphics and disk temperature one click away.">
+<meta property="og:url" content="https://saikatnjm.github.io/tempo/cpu-temperature.html">
+<meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tempo: a super light system monitor for the GNOME top bar">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "SoftwareApplication",
+   "name": "Tempo",
+   "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them.",
+   "applicationCategory": "UtilitiesApplication",
+   "applicationSubCategory": "System monitor",
+   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 50)",
+   "softwareVersion": "1.2.0",
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "isAccessibleForFree": true,
+   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+   "url": "https://saikatnjm.github.io/tempo/",
+   "downloadUrl": "https://github.com/saikatnjm/tempo/releases/latest",
+   "codeRepository": "https://github.com/saikatnjm/tempo",
+   "image": "https://saikatnjm.github.io/tempo/assets/social-card.png",
+   "screenshot": "https://saikatnjm.github.io/tempo/assets/float-both.png"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tempo",
+     "item": "https://saikatnjm.github.io/tempo/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "CPU temperature",
+     "item": "https://saikatnjm.github.io/tempo/cpu-temperature.html"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "How do I see my CPU temperature on Ubuntu without the terminal?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Install Tempo. The processor temperature appears in the top bar at once, and stays there. The same works on Fedora, Debian, Arch and any other distribution with GNOME 42 to 50."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Do I need lm-sensors?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. Tempo reads the temperature files the Linux kernel provides directly, so there is nothing else to install or configure."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "What temperature is too hot?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "That depends on the processor; most slow themselves down somewhere between 90 and 105 °C. Tempo turns amber at 75 °C and red at 85 °C as a heads-up, not as a verdict."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "The temperature is not shown. Why?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Your computer has no temperature sensor Tempo recognises yet. Please open an issue on GitHub with the output of grep . /sys/class/hwmon/hwmon*/name and it can be added."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can it show the graphics card temperature too?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes, in the menu, together with the disk temperature and the fans, where the kernel reports them (AMD and Intel graphics, and Nouveau)."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<!-- Made by tools/site.py. Change the texts there, not here. -->
+<div class="wrap">
+<nav aria-label="Tempo">
+  <img src="assets/logo.svg" alt="" width="34" height="34">
+  <a class="home" href="./">Tempo</a>
+  <a href="system-monitor.html">System monitor</a>
+  <a href="network-speed.html">Internet speed</a>
+  <a href="music-visualizer.html">Music visualizer</a>
+  <a href="cpu-temperature.html" aria-current="page">CPU temperature</a>
+  <a href="fan-control.html">Fans</a>
+  <a href="desktop-widgets.html">Desktop widgets</a>
+  <a href="install.html">Install</a>
+</nav>
+<p class="crumbs"><a href="./">Tempo</a> › CPU temperature</p>
+
+<h1>Your CPU temperature, always in view</h1>
+<p class="lead">Tempo shows the processor's temperature in the GNOME top bar and tints it amber above 75 °C and red above 85 °C, so a hot machine catches your eye before it slows itself down.</p>
+<div class="buttons">
+  <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">Download for GNOME 45+</a>
+  <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
+  <a class="button" href="install.html">Install guide</a>
+</div>
+<ul class="facts">
+  <li><b>Free</b> and open source</li>
+  <li><b>GNOME 42 to 50</b> on Ubuntu, Fedora, Debian, Arch and more</li>
+  <li><b>250 KB</b>, nothing else installed</li>
+</ul>
+<figure><img src="assets/bar-ember.png" width="466" alt="Tempo in the top bar, showing 66 degrees next to the two rings"><figcaption>The temperature sits next to the rings, twice life size here.</figcaption></figure>
+
+<section>
+  <h2>What you get</h2>
+  <ul class="points">
+    <li><b>Works out of the box</b> on AMD (<code>k10temp</code>), Intel (<code>coretemp</code>) and most ARM boards. There is nothing to set up: Tempo reads the sensors the Linux kernel already offers.</li>
+    <li><b>A warning you cannot miss:</b> amber above 75 °C, red above 85 °C.</li>
+    <li><b>Graphics card and disk temperature</b> (NVMe and SATA) in the menu, read only while the menu is open.</li>
+    <li><b>Every fan and its speed</b> in the same menu. <a href="fan-control.html">More about fans</a>.</li>
+    <li><b>Celsius or Fahrenheit.</b></li>
+    <li><b>Never in the way:</b> sensors are read on a worker thread, so a slow sensor cannot make your desktop stutter.</li>
+  </ul>
+  <div class="pair">
+<figure><img src="assets/menu.png" width="300" alt="Tempo&#x27;s menu with processor, graphics and disk temperature and the fan speed" loading="lazy"><figcaption>Graphics, disk and fans are in the menu.</figcaption></figure>
+</div>
+</section>
+
+<section>
+  <h2>What it costs your computer</h2>
+  <p>Measured with the project's own benchmark (<code>make bench</code>), in percent of one processor core.</p>
+  <div class="scroll">
+  <table>
+    <tbody>
+      <tr><td>Temperature in the top bar</td><td>Nothing measurable</td></tr>
+      <tr><td>Graphics, disk and fans in the menu</td><td>Read only while the menu is open</td></tr>
+      <tr><td>While the screens are off</td><td>Nothing runs</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>One small file is read every 3 seconds, and the number is redrawn only when it changes. <a href="./#light">How Tempo stays light</a>.</p>
+</section>
+
+<section>
+  <h2>Turn it on</h2>
+  <ol class="steps">
+    <li><b>Install Tempo</b> with the buttons above (the <a href="install.html">install guide</a> has every step).</li>
+    <li><b>That is all.</b> The temperature is on by default and appears next to the rings.</li>
+    <li><b>For Fahrenheit,</b> click Tempo, open <b>Settings</b> and change the temperature unit.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Questions</h2>
+  <details><summary>How do I see my CPU temperature on Ubuntu without the terminal?</summary><p>Install Tempo. The processor temperature appears in the top bar at once, and stays there. The same works on Fedora, Debian, Arch and any other distribution with GNOME 42 to 50.</p></details>
+  <details><summary>Do I need lm-sensors?</summary><p>No. Tempo reads the temperature files the Linux kernel provides directly, so there is nothing else to install or configure.</p></details>
+  <details><summary>What temperature is too hot?</summary><p>That depends on the processor; most slow themselves down somewhere between 90 and 105 °C. Tempo turns amber at 75 °C and red at 85 °C as a heads-up, not as a verdict.</p></details>
+  <details><summary>The temperature is not shown. Why?</summary><p>Your computer has no temperature sensor Tempo recognises yet. Please open an issue on GitHub with the output of grep . /sys/class/hwmon/hwmon*/name and it can be added.</p></details>
+  <details><summary>Can it show the graphics card temperature too?</summary><p>Yes, in the menu, together with the disk temperature and the fans, where the kernel reports them (AMD and Intel graphics, and Nouveau).</p></details>
+</section>
+
+<section>
+  <h2>Also in Tempo</h2>
+  <p>Tempo is one small GNOME Shell extension. Every part has its own switch, and a part that is off costs nothing.</p>
+  <div class="grid">
+    <a class="card" href="system-monitor.html"><h3>System monitor</h3><p>CPU and memory as two small rings, with the details one click away.</p></a>
+    <a class="card" href="network-speed.html"><h3>Internet speed</h3><p>Download and upload speed in the top bar, in a width that never changes.</p></a>
+    <a class="card" href="music-visualizer.html"><h3>Music visualizer</h3><p>Bars that move with your music, in the top bar or floating on the desktop.</p></a>
+    <a class="card" href="fan-control.html"><h3>Fans</h3><p>Every fan and its speed, and an optional cooler fan curve for late starters.</p></a>
+    <a class="card" href="desktop-widgets.html"><h3>Desktop widgets</h3><p>Floating panels for your desktop: system readings and a music visualizer.</p></a>
+  </div>
+</section>
+</div>
+
+<footer class="wrap">
+  <a href="./">Tempo</a> ·
+  <a href="install.html">Install</a> ·
+  <a href="https://github.com/saikatnjm/tempo">Source</a> ·
+  <a href="install.html#versions">All versions</a> ·
+  <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a><br>
+  Free software under the GPL-3.0-or-later licence. Not affiliated with or endorsed by the GNOME Foundation.
+</footer>
+</body>
+</html>

@@ -1,7 +1,7 @@
 {
   "uuid": "tempo@saikatnjm.github.io",
   "name": "Tempo",
-  "description": "CPU and memory rings, temperature, network speed and music visuals for the top bar, plus optional floating panels for the desktop. Small, quiet, and every part can be switched on or off.",
+  "description": "A super light system monitor for the top bar: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop panels when you want them. Every part can be switched on or off.",
   "shell-version": @SHELL_VERSIONS@,
   "version": 3,
   "version-name": "@VERSION@",

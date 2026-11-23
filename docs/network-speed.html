@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Internet speed meter for the GNOME top bar on Linux | Tempo</title>
+<meta name="description" content="See your download and upload speed in the GNOME top bar on Ubuntu, Fedora or any Linux with GNOME. Fixed width, no flicker, no measurable processor cost.">
+<meta name="google-site-verification" content="RF5trxrdZtkytEnmTEsT2Wl1QqtxB0JtmKpjnZm3wFc">
+<link rel="canonical" href="https://saikatnjm.github.io/tempo/network-speed.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tempo">
+<meta property="og:title" content="Internet speed meter for the GNOME top bar on Linux | Tempo">
+<meta property="og:description" content="See your download and upload speed in the GNOME top bar on Ubuntu, Fedora or any Linux with GNOME. Fixed width, no flicker, no measurable processor cost.">
+<meta property="og:url" content="https://saikatnjm.github.io/tempo/network-speed.html">
+<meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tempo: a super light system monitor for the GNOME top bar">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "SoftwareApplication",
+   "name": "Tempo",
+   "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them.",
+   "applicationCategory": "UtilitiesApplication",
+   "applicationSubCategory": "System monitor",
+   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 50)",
+   "softwareVersion": "1.2.0",
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "isAccessibleForFree": true,
+   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+   "url": "https://saikatnjm.github.io/tempo/",
+   "downloadUrl": "https://github.com/saikatnjm/tempo/releases/latest",
+   "codeRepository": "https://github.com/saikatnjm/tempo",
+   "image": "https://saikatnjm.github.io/tempo/assets/social-card.png",
+   "screenshot": "https://saikatnjm.github.io/tempo/assets/float-both.png"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tempo",
+     "item": "https://saikatnjm.github.io/tempo/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Internet speed",
+     "item": "https://saikatnjm.github.io/tempo/network-speed.html"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "How do I show internet speed in the top bar on Ubuntu?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Install Tempo, open its Settings and switch on Network speed. Download and upload speed appear in the top bar as two small lines. It works the same on Fedora, Debian, Arch and any other distribution with GNOME 42 to 50."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it bits or bytes?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Bytes per second, the same unit your browser shows for a download. 1.2M means 1.2 mebibytes per second, which is about 10 megabits per second."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it measure how fast my connection can go?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. It shows the traffic that is happening right now, not a speed test. Start a big download and you will see roughly what your connection can do."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why does it show 0K although I am online?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Because nothing is being transferred at that moment. The number moves as soon as something loads."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it count VPN or Docker traffic twice?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No. Only real network cards are counted, so traffic that also passes through a tunnel or a bridge is counted once."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<!-- Made by tools/site.py. Change the texts there, not here. -->
+<div class="wrap">
+<nav aria-label="Tempo">
+  <img src="assets/logo.svg" alt="" width="34" height="34">
+  <a class="home" href="./">Tempo</a>
+  <a href="system-monitor.html">System monitor</a>
+  <a href="network-speed.html" aria-current="page">Internet speed</a>
+  <a href="music-visualizer.html">Music visualizer</a>
+  <a href="cpu-temperature.html">CPU temperature</a>
+  <a href="fan-control.html">Fans</a>
+  <a href="desktop-widgets.html">Desktop widgets</a>
+  <a href="install.html">Install</a>
+</nav>
+<p class="crumbs"><a href="./">Tempo</a> › Internet speed</p>
+
+<h1>Internet speed in your top bar</h1>
+<p class="lead">Tempo shows how fast you are downloading and uploading right now, as two small lines in the GNOME top bar: download over upload. The numbers change; the width never does, so nothing in your top bar shuffles sideways.</p>
+<div class="buttons">
+  <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">Download for GNOME 45+</a>
+  <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
+  <a class="button" href="install.html">Install guide</a>
+</div>
+<ul class="facts">
+  <li><b>Free</b> and open source</li>
+  <li><b>GNOME 42 to 50</b> on Ubuntu, Fedora, Debian, Arch and more</li>
+  <li><b>250 KB</b>, nothing else installed</li>
+</ul>
+<figure><img src="assets/bar-ember.png" width="466" alt="Tempo in the top bar, with download and upload speed at the right"><figcaption>Download over upload, at the right of Tempo, twice life size.</figcaption></figure>
+
+<section>
+  <h2>What you get</h2>
+  <ul class="points">
+    <li><b>Download and upload speed</b>, updated every 3 seconds (or every 1 to 10, your choice).</li>
+    <li><b>A fixed width</b>, measured in your own font. Other items in the top bar stay exactly where they are as the numbers change.</li>
+    <li><b>Counted once.</b> Tempo adds up your real network cards (Wi-Fi, Ethernet, USB tethering). Traffic through VPN tunnels, Docker bridges and virtual machines is not counted a second time.</li>
+    <li><b>Short in the bar, spelled out in the menu:</b> 892K and 1.2M in the top bar, 892 KiB/s and 1.2 MiB/s in the menu.</li>
+    <li><b>Also on the desktop:</b> the floating system panel shows the same speeds. <a href="desktop-widgets.html">More about the panels</a>.</li>
+  </ul>
+  
+</section>
+
+<section>
+  <h2>What it costs your computer</h2>
+  <p>Measured with the project's own benchmark (<code>make bench</code>), in percent of one processor core.</p>
+  <div class="scroll">
+  <table>
+    <tbody>
+      <tr><td>Network speed in the top bar</td><td>Nothing measurable</td></tr>
+      <tr><td>While the screens are off</td><td>Nothing runs</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Every few seconds Tempo reads one small file the Linux kernel keeps (<code>/proc/net/dev</code>) and subtracts the previous reading. No network traffic is created, and nothing is sent anywhere. <a href="./#light">How Tempo stays light</a>.</p>
+</section>
+
+<section>
+  <h2>Turn it on</h2>
+  <ol class="steps">
+    <li><b>Install Tempo</b> with the buttons above (the <a href="install.html">install guide</a> has every step).</li>
+    <li><b>Click Tempo</b> in the top bar and open <b>Settings</b>.</li>
+    <li><b>Switch on Network speed.</b> It is off by default, like every extra.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Questions</h2>
+  <details><summary>How do I show internet speed in the top bar on Ubuntu?</summary><p>Install Tempo, open its Settings and switch on Network speed. Download and upload speed appear in the top bar as two small lines. It works the same on Fedora, Debian, Arch and any other distribution with GNOME 42 to 50.</p></details>
+  <details><summary>Is it bits or bytes?</summary><p>Bytes per second, the same unit your browser shows for a download. 1.2M means 1.2 mebibytes per second, which is about 10 megabits per second.</p></details>
+  <details><summary>Does it measure how fast my connection can go?</summary><p>No. It shows the traffic that is happening right now, not a speed test. Start a big download and you will see roughly what your connection can do.</p></details>
+  <details><summary>Why does it show 0K although I am online?</summary><p>Because nothing is being transferred at that moment. The number moves as soon as something loads.</p></details>
+  <details><summary>Does it count VPN or Docker traffic twice?</summary><p>No. Only real network cards are counted, so traffic that also passes through a tunnel or a bridge is counted once.</p></details>
+</section>
+
+<section>
+  <h2>Also in Tempo</h2>
+  <p>Tempo is one small GNOME Shell extension. Every part has its own switch, and a part that is off costs nothing.</p>
+  <div class="grid">
+    <a class="card" href="system-monitor.html"><h3>System monitor</h3><p>CPU and memory as two small rings, with the details one click away.</p></a>
+    <a class="card" href="music-visualizer.html"><h3>Music visualizer</h3><p>Bars that move with your music, in the top bar or floating on the desktop.</p></a>
+    <a class="card" href="cpu-temperature.html"><h3>CPU temperature</h3><p>The processor&#x27;s temperature in the top bar, amber and red when it gets hot.</p></a>
+    <a class="card" href="fan-control.html"><h3>Fans</h3><p>Every fan and its speed, and an optional cooler fan curve for late starters.</p></a>
+    <a class="card" href="desktop-widgets.html"><h3>Desktop widgets</h3><p>Floating panels for your desktop: system readings and a music visualizer.</p></a>
+  </div>
+</section>
+</div>
+
+<footer class="wrap">
+  <a href="./">Tempo</a> ·
+  <a href="install.html">Install</a> ·
+  <a href="https://github.com/saikatnjm/tempo">Source</a> ·
+  <a href="install.html#versions">All versions</a> ·
+  <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a><br>
+  Free software under the GPL-3.0-or-later licence. Not affiliated with or endorsed by the GNOME Foundation.
+</footer>
+</body>
+</html>

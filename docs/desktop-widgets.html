@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Desktop widgets for GNOME: system and music panels | Tempo</title>
+<meta name="description" content="Floating desktop widgets for GNOME on Linux: a system panel with CPU, memory, temperature, network speed and fan, and a music visualizer. Drag, zoom, done.">
+<meta name="google-site-verification" content="RF5trxrdZtkytEnmTEsT2Wl1QqtxB0JtmKpjnZm3wFc">
+<link rel="canonical" href="https://saikatnjm.github.io/tempo/desktop-widgets.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tempo">
+<meta property="og:title" content="Desktop widgets for GNOME: system and music panels | Tempo">
+<meta property="og:description" content="Floating desktop widgets for GNOME on Linux: a system panel with CPU, memory, temperature, network speed and fan, and a music visualizer. Drag, zoom, done.">
+<meta property="og:url" content="https://saikatnjm.github.io/tempo/desktop-widgets.html">
+<meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tempo: a super light system monitor for the GNOME top bar">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "SoftwareApplication",
+   "name": "Tempo",
+   "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them.",
+   "applicationCategory": "UtilitiesApplication",
+   "applicationSubCategory": "System monitor",
+   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 50)",
+   "softwareVersion": "1.2.0",
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "isAccessibleForFree": true,
+   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+   "url": "https://saikatnjm.github.io/tempo/",
+   "downloadUrl": "https://github.com/saikatnjm/tempo/releases/latest",
+   "codeRepository": "https://github.com/saikatnjm/tempo",
+   "image": "https://saikatnjm.github.io/tempo/assets/social-card.png",
+   "screenshot": "https://saikatnjm.github.io/tempo/assets/float-both.png"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tempo",
+     "item": "https://saikatnjm.github.io/tempo/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Desktop widgets",
+     "item": "https://saikatnjm.github.io/tempo/desktop-widgets.html"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "Does GNOME have desktop widgets?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Not by itself. Tempo adds two: a system panel (processor, memory, temperature, network speed, fan) and a music visualizer. Both are drawn by GNOME Shell, so they need no separate program and no configuration files."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "I cannot drag the panel. Why?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "A panel on the desktop sits behind everything else, so a click only reaches it where nothing is in front. If your desktop shows icons (Ubuntu's Desktop Icons does) or you use the older X11 session, set Place them to On top of windows in the settings, move and size the panel, then switch back."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it work with several monitors?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Each panel can go on any monitor, and its place is remembered."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Do the widgets use the processor all the time?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The system panel costs about 0.2 % of one processor core. The visualizer costs 2.7 % while music plays and nothing while it does not. In the overview and while the screens are off, nothing is animated."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I resize the widgets?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Drag the bottom-right corner to zoom a panel: it keeps its shape, and the rings, text and bars grow with it. Drag the right or bottom edge to make it wider or taller instead."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<!-- Made by tools/site.py. Change the texts there, not here. -->
+<div class="wrap">
+<nav aria-label="Tempo">
+  <img src="assets/logo.svg" alt="" width="34" height="34">
+  <a class="home" href="./">Tempo</a>
+  <a href="system-monitor.html">System monitor</a>
+  <a href="network-speed.html">Internet speed</a>
+  <a href="music-visualizer.html">Music visualizer</a>
+  <a href="cpu-temperature.html">CPU temperature</a>
+  <a href="fan-control.html">Fans</a>
+  <a href="desktop-widgets.html" aria-current="page">Desktop widgets</a>
+  <a href="install.html">Install</a>
+</nav>
+<p class="crumbs"><a href="./">Tempo</a> › Desktop widgets</p>
+
+<h1>Desktop widgets for GNOME, without the weight</h1>
+<p class="lead">Two floating panels that you put anywhere on any screen: a system panel and a music visualizer. They sit on the desktop behind your windows like widgets, or on top of them, and each replaces its part of the top bar while it is on.</p>
+<div class="buttons">
+  <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">Download for GNOME 45+</a>
+  <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
+  <a class="button" href="install.html">Install guide</a>
+</div>
+<ul class="facts">
+  <li><b>Free</b> and open source</li>
+  <li><b>GNOME 42 to 50</b> on Ubuntu, Fedora, Debian, Arch and more</li>
+  <li><b>250 KB</b>, nothing else installed</li>
+</ul>
+<figure><img src="assets/float-both.png" width="788" alt="The system panel with three rings and a fan, and the visualizer panel with segmented bars, on the desktop"><figcaption>The system panel (as rings) and the visualizer panel (as bars).</figcaption></figure>
+
+<section>
+  <h2>What you get</h2>
+  <ul class="points">
+    <li><b>System panel:</b> processor, memory, temperature and network speed in one place, as rings or as bars, with a little fan that turns while your real fan does.</li>
+    <li><b>Visualizer panel:</b> your music as bars of lit segments with peak caps and a reflection, mirrored, or as a wave. <a href="music-visualizer.html">More about the visualizer</a>.</li>
+    <li><b>Drag to move, drag the corner to zoom.</b> A panel keeps its shape and everything in it grows with it. Drag the right or bottom edge to change its shape. Place and size are remembered.</li>
+    <li><b>Any screen:</b> put each panel on whichever monitor you like. If that monitor is unplugged, the panel comes to your main screen and goes back when it returns.</li>
+    <li><b>Your look:</b> behind your windows like a desktop widget or on top of them; a glass, solid or clear background; four palettes.</li>
+    <li><b>No clutter:</b> a panel takes its readings out of the top bar while it is on, so nothing is shown twice.</li>
+  </ul>
+  <div class="pair">
+<figure><img src="assets/float-system-bars.png" width="358" alt="The system panel as bars" loading="lazy"><figcaption>The system panel, as bars.</figcaption></figure>
+<figure><img src="assets/float-viz-wave.png" width="408" alt="The visualizer panel as a wave" loading="lazy"><figcaption>The visualizer, as a wave.</figcaption></figure>
+</div>
+</section>
+
+<section>
+  <h2>What it costs your computer</h2>
+  <p>Measured with the project's own benchmark (<code>make bench</code>), in percent of one processor core.</p>
+  <div class="scroll">
+  <table>
+    <tbody>
+      <tr><td>System panel</td><td>0.2 %</td></tr>
+      <tr><td>Its little fan, while the real fan turns</td><td>0.7 % more</td></tr>
+      <tr><td>Visualizer panel, while music plays</td><td>2.7 %</td></tr>
+      <tr><td>In the overview, or while the screens are off</td><td>Nothing is animated</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The panels are drawn by GNOME Shell itself, not by a separate program, and reuse the readings Tempo already has. One thing Tempo cannot see is whether a window covers a panel: a visualizer behind a window still animates, so switch it off when you do not want it. <a href="./#light">How Tempo stays light</a>.</p>
+</section>
+
+<section>
+  <h2>Turn it on</h2>
+  <ol class="steps">
+    <li><b>Install Tempo</b> with the buttons above (the <a href="install.html">install guide</a> has every step).</li>
+    <li><b>Click Tempo</b> in the top bar, open <b>Floating panels</b> and switch on the system panel, the visualizer panel, or both.</li>
+    <li><b>Drag</b> a panel where you want it, and drag its corner to size it. Designs, background and placement are under <b>Settings</b>.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Questions</h2>
+  <details><summary>Does GNOME have desktop widgets?</summary><p>Not by itself. Tempo adds two: a system panel (processor, memory, temperature, network speed, fan) and a music visualizer. Both are drawn by GNOME Shell, so they need no separate program and no configuration files.</p></details>
+  <details><summary>I cannot drag the panel. Why?</summary><p>A panel on the desktop sits behind everything else, so a click only reaches it where nothing is in front. If your desktop shows icons (Ubuntu&#x27;s Desktop Icons does) or you use the older X11 session, set Place them to On top of windows in the settings, move and size the panel, then switch back.</p></details>
+  <details><summary>Does it work with several monitors?</summary><p>Yes. Each panel can go on any monitor, and its place is remembered.</p></details>
+  <details><summary>Do the widgets use the processor all the time?</summary><p>The system panel costs about 0.2 % of one processor core. The visualizer costs 2.7 % while music plays and nothing while it does not. In the overview and while the screens are off, nothing is animated.</p></details>
+  <details><summary>Can I resize the widgets?</summary><p>Yes. Drag the bottom-right corner to zoom a panel: it keeps its shape, and the rings, text and bars grow with it. Drag the right or bottom edge to make it wider or taller instead.</p></details>
+</section>
+
+<section>
+  <h2>Also in Tempo</h2>
+  <p>Tempo is one small GNOME Shell extension. Every part has its own switch, and a part that is off costs nothing.</p>
+  <div class="grid">
+    <a class="card" href="system-monitor.html"><h3>System monitor</h3><p>CPU and memory as two small rings, with the details one click away.</p></a>
+    <a class="card" href="network-speed.html"><h3>Internet speed</h3><p>Download and upload speed in the top bar, in a width that never changes.</p></a>
+    <a class="card" href="music-visualizer.html"><h3>Music visualizer</h3><p>Bars that move with your music, in the top bar or floating on the desktop.</p></a>
+    <a class="card" href="cpu-temperature.html"><h3>CPU temperature</h3><p>The processor&#x27;s temperature in the top bar, amber and red when it gets hot.</p></a>
+    <a class="card" href="fan-control.html"><h3>Fans</h3><p>Every fan and its speed, and an optional cooler fan curve for late starters.</p></a>
+  </div>
+</section>
+</div>
+
+<footer class="wrap">
+  <a href="./">Tempo</a> ·
+  <a href="install.html">Install</a> ·
+  <a href="https://github.com/saikatnjm/tempo">Source</a> ·
+  <a href="install.html#versions">All versions</a> ·
+  <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a><br>
+  Free software under the GPL-3.0-or-later licence. Not affiliated with or endorsed by the GNOME Foundation.
+</footer>
+</body>
+</html>

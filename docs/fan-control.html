@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fan speed and fan control for Linux laptops and PCs | Tempo</title>
+<meta name="description" content="See every fan&#x27;s speed from the GNOME top bar on Linux, and give fans that start too late a cooler curve. Made for laptops like the Dell Inspiron.">
+<meta name="google-site-verification" content="RF5trxrdZtkytEnmTEsT2Wl1QqtxB0JtmKpjnZm3wFc">
+<link rel="canonical" href="https://saikatnjm.github.io/tempo/fan-control.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tempo">
+<meta property="og:title" content="Fan speed and fan control for Linux laptops and PCs | Tempo">
+<meta property="og:description" content="See every fan&#x27;s speed from the GNOME top bar on Linux, and give fans that start too late a cooler curve. Made for laptops like the Dell Inspiron.">
+<meta property="og:url" content="https://saikatnjm.github.io/tempo/fan-control.html">
+<meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tempo: a super light system monitor for the GNOME top bar">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "SoftwareApplication",
+   "name": "Tempo",
+   "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them.",
+   "applicationCategory": "UtilitiesApplication",
+   "applicationSubCategory": "System monitor",
+   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 50)",
+   "softwareVersion": "1.2.0",
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "isAccessibleForFree": true,
+   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+   "url": "https://saikatnjm.github.io/tempo/",
+   "downloadUrl": "https://github.com/saikatnjm/tempo/releases/latest",
+   "codeRepository": "https://github.com/saikatnjm/tempo",
+   "image": "https://saikatnjm.github.io/tempo/assets/social-card.png",
+   "screenshot": "https://saikatnjm.github.io/tempo/assets/float-both.png"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tempo",
+     "item": "https://saikatnjm.github.io/tempo/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "Fans",
+     "item": "https://saikatnjm.github.io/tempo/fan-control.html"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "My laptop fan does not spin until it is very hot. Is it broken?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Often not. Some laptops are set up by their maker to keep the fan off until about 90 °C. If the fan runs during start-up and Tempo shows a speed when the laptop is hot, the fan is fine and only starts late. Tempo's optional fan control can start it sooner."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it safe to control fans from Linux?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Tempo's fan control is built to fail safe: when it stops for any reason every fan goes back to the computer's own control, a temperature it cannot read counts as hot, and a fan that nothing else looks after is never stopped. It is tested against simulated fan hardware on every change."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which computers does fan control work on?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Any computer where Linux can set the fan speed through its standard interface: most desktop motherboards, AMD graphics cards, Dell, ASUS and Framework laptops, and ThinkPads after adding fan_control=1. The installer lists what it found before it changes anything, and installs nothing if there is nothing to control."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How do I see my fan speed on Linux?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Install Tempo and click it: the menu lists every fan the computer reports with its speed in RPM. No terminal and no lm-sensors setup is needed."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I remove fan control again?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes: Settings, Fan control, Remove. Every fan goes straight back to the computer's own control, and Tempo keeps working without it."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<!-- Made by tools/site.py. Change the texts there, not here. -->
+<div class="wrap">
+<nav aria-label="Tempo">
+  <img src="assets/logo.svg" alt="" width="34" height="34">
+  <a class="home" href="./">Tempo</a>
+  <a href="system-monitor.html">System monitor</a>
+  <a href="network-speed.html">Internet speed</a>
+  <a href="music-visualizer.html">Music visualizer</a>
+  <a href="cpu-temperature.html">CPU temperature</a>
+  <a href="fan-control.html" aria-current="page">Fans</a>
+  <a href="desktop-widgets.html">Desktop widgets</a>
+  <a href="install.html">Install</a>
+</nav>
+<p class="crumbs"><a href="./">Tempo</a> › Fans</p>
+
+<h1>See your fans, and start them sooner</h1>
+<p class="lead">Tempo lists every fan your computer reports, with its speed. And if your fans start too late (some laptops wait until 90 °C), the optional fan control gives them a cooler curve and a mode switch in the menu.</p>
+<div class="buttons">
+  <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">Download for GNOME 45+</a>
+  <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
+  <a class="button" href="install.html">Install guide</a>
+</div>
+<ul class="facts">
+  <li><b>Free</b> and open source</li>
+  <li><b>GNOME 42 to 50</b> on Ubuntu, Fedora, Debian, Arch and more</li>
+  <li><b>250 KB</b>, nothing else installed</li>
+</ul>
+<figure><img src="assets/float-system-rings.png" width="358" alt="The floating system panel: three rings and a small fan with its speed, 2500 RPM"><figcaption>The little fan in the system panel turns while your real fan does.</figcaption></figure>
+
+<section>
+  <h2>What you get</h2>
+  <ul class="points">
+    <li><b>Every fan, by name:</b> processor, case, graphics card and laptop fans, up to four, each with its speed. Empty connectors are left out.</li>
+    <li><b>A fan you can watch:</b> in the floating system panel a little fan turns while the real one does, faster as it speeds up. <a href="desktop-widgets.html">More about the panels</a>.</li>
+    <li><b>Optional fan control</b> with three modes in the menu: <b>Cool</b> (30 % below 60 °C, rising evenly to full speed at 85 °C), <b>Full speed</b>, and <b>Automatic</b> (hands off).</li>
+    <li><b>Made for laptops that wait too long.</b> A Dell Inspiron 3505 keeps its fan off until about 90 °C; with fan control it starts at 70 °C and stays on until the laptop is back below 58 °C, so it does not flicker on and off.</li>
+    <li><b>Works on</b> desktop motherboards (Nuvoton, ITE and Fintek chips), AMD graphics cards, Dell, ASUS and Framework laptops, ThinkPads after one setting, and fan hubs. Fans Linux can only read are shown, not controlled.</li>
+    <li><b>Safe by design:</b> when the service stops for any reason every fan goes back to the computer's own control, an unreadable temperature counts as hot, and a hot laptop's fan is never switched off when it is handed back.</li>
+  </ul>
+  <div class="pair">
+<figure><img src="assets/menu.png" width="300" alt="Tempo&#x27;s menu with the fan speed and the Fan mode switch" loading="lazy"><figcaption>Fan speed and Fan mode in the menu.</figcaption></figure>
+</div>
+</section>
+
+<section>
+  <h2>What it costs your computer</h2>
+  <p>Fan control is a few lines of bash that run as a system service. Tempo itself works without it.</p>
+  <div class="scroll">
+  <table>
+    <tbody>
+      <tr><td>Fan speeds in the menu</td><td>Read only while the menu is open</td></tr>
+      <tr><td>The little fan in the system panel</td><td>0.7 % of one core, only while the real fan turns</td></tr>
+      <tr><td>The fan control service</td><td>No measurable processor use, about 5 MB of memory</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>The service reads one temperature every 5 seconds and writes a fan setting only when it should change. It starts no other programs while it runs. <a href="./#light">How Tempo stays light</a>.</p>
+</section>
+
+<section>
+  <h2>Turn it on</h2>
+  <ol class="steps">
+    <li><b>Install Tempo</b> with the buttons above. The fan speeds are in its menu straight away.</li>
+    <li><b>For fan control,</b> click Tempo, open <b>Settings</b>, scroll to <b>Fan control</b> and press <b>Install</b>. GNOME asks for your password once, because fans can only be driven with administrator rights.</li>
+    <li><b>Choose the mode</b> under <b>Fan mode</b> in Tempo's menu. The same Settings button removes fan control again.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Questions</h2>
+  <details><summary>My laptop fan does not spin until it is very hot. Is it broken?</summary><p>Often not. Some laptops are set up by their maker to keep the fan off until about 90 °C. If the fan runs during start-up and Tempo shows a speed when the laptop is hot, the fan is fine and only starts late. Tempo&#x27;s optional fan control can start it sooner.</p></details>
+  <details><summary>Is it safe to control fans from Linux?</summary><p>Tempo&#x27;s fan control is built to fail safe: when it stops for any reason every fan goes back to the computer&#x27;s own control, a temperature it cannot read counts as hot, and a fan that nothing else looks after is never stopped. It is tested against simulated fan hardware on every change.</p></details>
+  <details><summary>Which computers does fan control work on?</summary><p>Any computer where Linux can set the fan speed through its standard interface: most desktop motherboards, AMD graphics cards, Dell, ASUS and Framework laptops, and ThinkPads after adding fan_control=1. The installer lists what it found before it changes anything, and installs nothing if there is nothing to control.</p></details>
+  <details><summary>How do I see my fan speed on Linux?</summary><p>Install Tempo and click it: the menu lists every fan the computer reports with its speed in RPM. No terminal and no lm-sensors setup is needed.</p></details>
+  <details><summary>Can I remove fan control again?</summary><p>Yes: Settings, Fan control, Remove. Every fan goes straight back to the computer&#x27;s own control, and Tempo keeps working without it.</p></details>
+</section>
+
+<section>
+  <h2>Also in Tempo</h2>
+  <p>Tempo is one small GNOME Shell extension. Every part has its own switch, and a part that is off costs nothing.</p>
+  <div class="grid">
+    <a class="card" href="system-monitor.html"><h3>System monitor</h3><p>CPU and memory as two small rings, with the details one click away.</p></a>
+    <a class="card" href="network-speed.html"><h3>Internet speed</h3><p>Download and upload speed in the top bar, in a width that never changes.</p></a>
+    <a class="card" href="music-visualizer.html"><h3>Music visualizer</h3><p>Bars that move with your music, in the top bar or floating on the desktop.</p></a>
+    <a class="card" href="cpu-temperature.html"><h3>CPU temperature</h3><p>The processor&#x27;s temperature in the top bar, amber and red when it gets hot.</p></a>
+    <a class="card" href="desktop-widgets.html"><h3>Desktop widgets</h3><p>Floating panels for your desktop: system readings and a music visualizer.</p></a>
+  </div>
+</section>
+</div>
+
+<footer class="wrap">
+  <a href="./">Tempo</a> ·
+  <a href="install.html">Install</a> ·
+  <a href="https://github.com/saikatnjm/tempo">Source</a> ·
+  <a href="install.html#versions">All versions</a> ·
+  <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a><br>
+  Free software under the GPL-3.0-or-later licence. Not affiliated with or endorsed by the GNOME Foundation.
+</footer>
+</body>
+</html>

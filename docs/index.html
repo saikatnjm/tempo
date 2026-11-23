@@ -3,13 +3,177 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tempo: system rings, music visuals and desktop panels for GNOME</title>
-<meta name="description" content="Tempo puts CPU and memory rings, temperature, network speed and music visuals in the GNOME top bar, with optional floating panels for the desktop. Small, quiet, and every part has its own switch.">
-<meta property="og:title" content="Tempo">
-<meta property="og:description" content="Your system and your music, at a glance. A tiny GNOME Shell extension.">
-<meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/logo-512.png">
+<title>Tempo: a super light system monitor for the GNOME top bar</title>
+<meta name="description" content="CPU, memory, temperature, internet speed and fans in the GNOME top bar on Linux, at no measurable cost. With a music visualizer and desktop widgets. Free.">
+<meta name="google-site-verification" content="RF5trxrdZtkytEnmTEsT2Wl1QqtxB0JtmKpjnZm3wFc">
+<link rel="canonical" href="https://saikatnjm.github.io/tempo/">
 <meta property="og:type" content="website">
+<meta property="og:site_name" content="Tempo">
+<meta property="og:title" content="Tempo: a super light system monitor for the GNOME top bar">
+<meta property="og:description" content="CPU, memory, temperature, internet speed and fans in the GNOME top bar on Linux, at no measurable cost. With a music visualizer and desktop widgets. Free.">
+<meta property="og:url" content="https://saikatnjm.github.io/tempo/">
+<meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tempo: a super light system monitor for the GNOME top bar">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#121214">
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<!-- What search engines may show about Tempo. Refreshed by tools/site.py from the questions at
+     the bottom of this page; change those, not this block. -->
+<!-- SEO:START -->
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "SoftwareApplication",
+   "name": "Tempo",
+   "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them.",
+   "applicationCategory": "UtilitiesApplication",
+   "applicationSubCategory": "System monitor",
+   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 50)",
+   "softwareVersion": "1.2.0",
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "isAccessibleForFree": true,
+   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+   "url": "https://saikatnjm.github.io/tempo/",
+   "downloadUrl": "https://github.com/saikatnjm/tempo/releases/latest",
+   "codeRepository": "https://github.com/saikatnjm/tempo",
+   "image": "https://saikatnjm.github.io/tempo/assets/social-card.png",
+   "screenshot": "https://saikatnjm.github.io/tempo/assets/float-both.png"
+  },
+  {
+   "@type": "WebSite",
+   "name": "Tempo",
+   "url": "https://saikatnjm.github.io/tempo/",
+   "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them."
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "What is Tempo?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "A GNOME Shell extension for Linux that works as a super light system monitor in the top bar: processor and memory rings, temperature, internet speed and fans. It can also show your music as a visualizer, and put floating panels on your desktop."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it slow my computer down or drain the battery?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The system readings add no measurable processor load. The music visuals are the one part that costs something: 1.4 to 2.7 % of one processor core at the default rate while music plays, and nothing while it doesn't. While the screens are off, nothing runs at all."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which Linux distributions does it work on?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Any distribution with the GNOME desktop, versions 42 to 50: Ubuntu 22.04 to 26.04, Fedora, Debian 12 and 13, Arch, openSUSE, Pop!_OS 22.04, Zorin OS and others. It does not run on KDE Plasma, Xfce or Cinnamon."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How is it different from other system monitor extensions?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It shows less in the top bar on purpose (two rings instead of rows of numbers), it publishes what it costs and how that was measured, and it stops entirely when you can't see it. If you want many numbers in view at once, another extension may suit you better."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Is it free?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Tempo is free and open source under the GPL-3.0-or-later licence, with no accounts, no ads and no network access."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Which app is making that sound?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Rest the pointer on the small bars, or open the menu: the song and the app are at the top. Click it there to go to the app."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "The bars don't show up",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Check that \"React to music\" is on, that something is playing sound, and that the player supports the standard media controls. If it appears in GNOME's media controls in the notification list, it does."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "The temperature isn't shown",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Your machine has no sensor Tempo recognises yet. AMD, Intel and most ARM boards work; please open an issue for anything else."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can it show numbers next to the rings?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The numbers are one click away in the menu. Keeping the top bar calm is the point."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Why is there a small Tempo icon in my top bar?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Every part is switched off, or the floating panels have taken their place. The icon keeps the menu reachable."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "How do I get the floating panels?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Click Tempo, open Floating panels and switch on the system panel, the visualizer panel, or both. Their designs, background and placement are in the settings."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "A floating panel can't be dragged",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "A panel on the desktop sits behind everything else, so a click only reaches it where nothing is in front. If your desktop shows icons, or you use the older X11 session, the click never arrives: set Place them to On top of windows in the settings, move and size the panel, then switch back."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "The little fan doesn't turn",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "It turns only while the real fan does; many laptops keep the fan off until they are warm. If the panel shows no fan at all, your computer doesn't report a fan speed to Linux."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does Tempo keep working while the screen is off?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "No, on purpose. While the screens are off it reads nothing, listens to nothing and animates nothing. On the lock screen GNOME switches extensions off altogether."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+<!-- SEO:END -->
 <style>
 :root {
   --bg: #121214; --surface: #1b1b1f; --line: rgba(255, 255, 255, .09);
@@ -30,7 +194,13 @@ header img.logo { width: 92px; height: 92px; }
 h1 { font-size: clamp(40px, 7vw, 60px); line-height: 1.1; margin: 18px 0 8px; letter-spacing: -.02em; }
 h2 { font-size: 30px; line-height: 1.2; margin: 0 0 10px; letter-spacing: -.01em; }
 h3 { font-size: 18px; margin: 0 0 6px; }
-.tagline { font-size: 22px; margin: 0 0 6px; }
+.tagline { display: block; font-size: clamp(20px, 3.4vw, 26px); line-height: 1.3; font-weight: 600; letter-spacing: 0; margin: 12px 0 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 0; margin: 22px 0 0; list-style: none; }
+.facts li { border: 1px solid var(--line); border-radius: 999px; padding: 4px 14px; font-size: 14px; color: var(--muted); }
+.facts b { color: var(--text); }
+a.card { display: block; text-decoration: none; color: var(--text); }
+a.card:hover { border-color: rgba(255, 255, 255, .25); }
+a.card .more { color: var(--p2); font-size: 15px; display: inline-block; margin-top: 8px; }
 .sub { color: var(--muted); max-width: 620px; margin: 0 auto 26px; }
 .lead { color: var(--muted); max-width: 700px; margin: 0 0 26px; }
 .buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
@@ -101,14 +271,19 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
 
 <header class="wrap">
   <img class="logo" src="assets/logo.svg" alt="Tempo logo" width="92" height="92">
-  <h1>Tempo</h1>
-  <p class="tagline">Your system and your music, at a glance.</p>
-  <p class="sub">CPU and memory rings, temperature, network speed and music visuals for the GNOME top bar, and optional floating panels for your desktop. Small, quiet, and every part has its own switch.</p>
+  <h1>Tempo <span class="tagline">The super light system monitor for your GNOME top bar</span></h1>
+  <p class="sub">CPU and memory, temperature, internet speed and fans at a glance on Linux, at no measurable cost to your processor. A music visualizer and desktop widgets are there when you want them, and every part has its own switch.</p>
   <div class="buttons">
     <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">Download for GNOME 45+</a>
     <a class="button" href="install.html">Install guide</a>
     <a class="button" href="https://github.com/saikatnjm/tempo">Source on GitHub</a>
   </div>
+  <ul class="facts">
+    <li><b>0 %</b> measurable processor use for the readings</li>
+    <li><b>250 KB</b>, no background service</li>
+    <li><b>GNOME 42 to 50</b>: Ubuntu, Fedora, Debian, Arch</li>
+    <li><b>Free</b> and open source</li>
+  </ul>
 
   <div>
     <div class="demo" role="img" aria-label="Animated drawing of Tempo in a top bar: music bars, a processor ring, a memory ring, 52 degrees, and download over upload speed">
@@ -124,33 +299,36 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
 </header>
 
 <main>
-<section class="wrap" id="features">
-  <h2>What you get</h2>
-  <p class="lead">Tempo lives in the top bar and can also sit on your desktop. Everything below can be switched on or off on its own; new parts start off.</p>
-  <h3 class="group">In the top bar</h3>
+<section class="wrap" id="why">
+  <h2>Why another system monitor?</h2>
+  <p class="lead">There are many ways to put processor and memory numbers in a top bar. Tempo's reason to exist is how little it asks of your computer, and of your attention.</p>
   <div class="grid">
-    <div class="card"><h3>Two rings</h3><p>One fills up with processor use, the other with memory use. No numbers to read; a glance is enough.</p></div>
-    <div class="card"><h3>Temperature</h3><p>The processor's temperature, turning amber above 75 °C and red above 85 °C. Celsius or Fahrenheit.</p></div>
-    <div class="card"><h3>Network speed</h3><p>Download over upload in two small lines of fixed width, so the top bar never shuffles sideways as the numbers change.</p></div>
-    <div class="card"><h3>Music as small bars</h3><p>Ten bars next to the rings that move with the sound while a media player is playing, and fade away when it stops.</p></div>
-    <div class="card"><h3>Music as a level line</h3><p>Or one thin line along the whole top bar that grows out from the middle with the loudness.</p></div>
-    <div class="card"><h3>Now playing</h3><p>Rest the pointer on the bars to see what is playing and in which app. The menu shows it too, and a click takes you there.</p></div>
-    <div class="card"><h3>One menu</h3><p>Click for processor speed and load, memory and swap, graphics and disk temperature, every fan, network speed, and the four busiest apps.</p></div>
+    <div class="card"><h3>It costs nothing to watch</h3><p>The rings, the temperature and the internet speed add no measurable processor load. One timer every 3 seconds reads three small files, and nothing is redrawn unless a value changed.</p></div>
+    <div class="card"><h3>It is calm to look at</h3><p>Two rings instead of rows of numbers, and a network speed that never changes width. The numbers are one click away, not always in your eye.</p></div>
+    <div class="card"><h3>It is measured, not promised</h3><p>Every figure on this page comes from a benchmark in the source code that anyone can run. When Tempo can't be seen, because the screens are off or a fullscreen window is in front, it stops.</p></div>
+    <div class="card"><h3>It leaves no trace</h3><p>250 KB in one folder of your home directory. No compiled code, no background service, no administrator rights. One command removes it.</p></div>
   </div>
-  <h3 class="group">On the desktop</h3>
+</section>
+
+<section class="wrap" id="features">
+  <h2>One small extension, six things people look for</h2>
+  <p class="lead">Tempo is a GNOME Shell extension for Linux. Each part has its own switch, a part that is off costs nothing, and new parts start off. Pick the one you came for:</p>
   <div class="grid">
-    <div class="card"><h3>System panel</h3><p>Processor, memory, temperature and network speed in one floating panel, as rings or as bars. A little fan turns while your computer's real fan does, with its speed next to it.</p></div>
-    <div class="card"><h3>Visualizer panel</h3><p>The music, bigger: bars of lit segments in your palette's colours with falling peak caps and a reflection, the same bars mirrored, or a smooth wave. A wider panel shows more bars.</p></div>
-    <div class="card"><h3>Move and zoom</h3><p>Drag a panel anywhere on any screen. Drag its corner to zoom it: it keeps its shape and everything in it grows with it. Drag an edge to reshape it.</p></div>
-    <div class="card"><h3>Your look</h3><p>Behind your windows like a desktop widget, or on top of them. Glass, solid or clear background. A panel replaces its part of the top bar while it is on.</p></div>
+    <a class="card" href="system-monitor.html"><h3>System monitor</h3><p>Processor and memory as two small rings in the top bar. One click shows usage, load, swap and the four busiest apps.</p><span class="more">A lightweight system monitor →</span></a>
+    <a class="card" href="cpu-temperature.html"><h3>CPU temperature</h3><p>The processor's temperature in the top bar, amber above 75 °C and red above 85 °C. Graphics and disk temperature are in the menu.</p><span class="more">CPU temperature in the top bar →</span></a>
+    <a class="card" href="network-speed.html"><h3>Internet speed</h3><p>Download over upload in two small lines of fixed width, so the top bar never shuffles sideways as the numbers change.</p><span class="more">An internet speed meter →</span></a>
+    <a class="card" href="music-visualizer.html"><h3>Music visualizer</h3><p>Small bars or a level line in the top bar, or a floating visualizer with segmented bars, falling peak caps and a reflection.</p><span class="more">A music visualizer for Linux →</span></a>
+    <a class="card" href="desktop-widgets.html"><h3>Desktop widgets</h3><p>A floating system panel and a floating visualizer. Drag them anywhere on any screen, and drag a corner to zoom them.</p><span class="more">Desktop widgets for GNOME →</span></a>
+    <a class="card" href="fan-control.html"><h3>Fans</h3><p>Every fan and its speed in the menu, and optional fan control for computers that start their fans too late.</p><span class="more">Fan speed and fan control →</span></a>
   </div>
   <figure class="wide"><img src="assets/float-both.png" width="788" alt="The system panel with rings and a fan, and the visualizer panel with segmented bars, on the desktop" loading="lazy"></figure>
-  <p class="caption">The system panel (as rings) and the visualizer panel (as bars). More pictures <a href="#screenshots">below</a>.</p>
-  <h3 class="group">Everywhere</h3>
+  <p class="caption">The floating system panel (as rings) and the visualizer panel (as bars). More pictures <a href="#screenshots">below</a>.</p>
+  <h3 class="group">And the small things</h3>
   <div class="grid">
+    <div class="card"><h3>Now playing</h3><p>Rest the pointer on the music bars to see what is playing and in which app. The menu shows it too, and a click takes you there.</p></div>
+    <div class="card"><h3>One menu</h3><p>Click for processor speed and load, memory and swap, graphics and disk temperature, every fan, network speed, and the four busiest apps.</p></div>
     <div class="card"><h3>Four palettes</h3><p>Ember, Aurora, Orchid, or Mono, which simply uses the top bar's own text colour.</p></div>
     <div class="card"><h3>A switch for everything</h3><p>Each part turns on or off on its own, and a part that is off costs nothing.</p></div>
-    <div class="card"><h3>Optional fan control</h3><p>For computers that start their fans late: one button in the settings installs a tiny service, and the menu gets a Fan mode switch (Cool, Full speed, Automatic). <a href="install.html#fan">More</a>.</p></div>
   </div>
 </section>
 
@@ -276,6 +454,11 @@ make install</code></pre>
 
 <section class="wrap" id="questions">
   <h2>Questions</h2>
+  <details><summary>What is Tempo?</summary><p>A GNOME Shell extension for Linux that works as a super light system monitor in the top bar: processor and memory rings, temperature, internet speed and fans. It can also show your music as a visualizer, and put floating panels on your desktop.</p></details>
+  <details><summary>Does it slow my computer down or drain the battery?</summary><p>The system readings add no measurable processor load. The music visuals are the one part that costs something: 1.4 to 2.7 % of one processor core at the default rate while music plays, and nothing while it doesn't. While the screens are off, nothing runs at all.</p></details>
+  <details><summary>Which Linux distributions does it work on?</summary><p>Any distribution with the GNOME desktop, versions 42 to 50: Ubuntu 22.04 to 26.04, Fedora, Debian 12 and 13, Arch, openSUSE, Pop!_OS 22.04, Zorin OS and others. It does not run on KDE Plasma, Xfce or Cinnamon.</p></details>
+  <details><summary>How is it different from other system monitor extensions?</summary><p>It shows less in the top bar on purpose (two rings instead of rows of numbers), it publishes what it costs and how that was measured, and it stops entirely when you can't see it. If you want many numbers in view at once, another extension may suit you better.</p></details>
+  <details><summary>Is it free?</summary><p>Yes. Tempo is free and open source under the GPL-3.0-or-later licence, with no accounts, no ads and no network access.</p></details>
   <details><summary>Which app is making that sound?</summary><p>Rest the pointer on the small bars, or open the menu: the song and the app are at the top. Click it there to go to the app.</p></details>
   <details><summary>The bars don't show up</summary><p>Check that "React to music" is on, that something is playing sound, and that the player supports the standard media controls. If it appears in GNOME's media controls in the notification list, it does.</p></details>
   <details><summary>The temperature isn't shown</summary><p>Your machine has no sensor Tempo recognises yet. AMD, Intel and most ARM boards work; please open an issue for anything else.</p></details>
@@ -289,6 +472,12 @@ make install</code></pre>
 </main>
 
 <footer class="wrap">
+  <a href="system-monitor.html">System monitor</a> ·
+  <a href="cpu-temperature.html">CPU temperature</a> ·
+  <a href="network-speed.html">Internet speed</a> ·
+  <a href="music-visualizer.html">Music visualizer</a> ·
+  <a href="desktop-widgets.html">Desktop widgets</a> ·
+  <a href="fan-control.html">Fans</a><br>
   Tempo is free software under the GPL-3.0-or-later licence.
   <a href="https://github.com/saikatnjm/tempo">Source</a> ·
   <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a> ·

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lightweight system monitor for the GNOME top bar | Tempo</title>
+<meta name="description" content="Tempo is a super light system monitor for GNOME on Linux: CPU and memory rings, temperature and network speed in the top bar, at no measurable processor cost.">
+<meta name="google-site-verification" content="RF5trxrdZtkytEnmTEsT2Wl1QqtxB0JtmKpjnZm3wFc">
+<link rel="canonical" href="https://saikatnjm.github.io/tempo/system-monitor.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Tempo">
+<meta property="og:title" content="Lightweight system monitor for the GNOME top bar | Tempo">
+<meta property="og:description" content="Tempo is a super light system monitor for GNOME on Linux: CPU and memory rings, temperature and network speed in the top bar, at no measurable processor cost.">
+<meta property="og:url" content="https://saikatnjm.github.io/tempo/system-monitor.html">
+<meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/social-card.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Tempo: a super light system monitor for the GNOME top bar">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="stylesheet" href="assets/site.css">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "SoftwareApplication",
+   "name": "Tempo",
+   "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them.",
+   "applicationCategory": "UtilitiesApplication",
+   "applicationSubCategory": "System monitor",
+   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 50)",
+   "softwareVersion": "1.2.0",
+   "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+   },
+   "isAccessibleForFree": true,
+   "license": "https://www.gnu.org/licenses/gpl-3.0.html",
+   "url": "https://saikatnjm.github.io/tempo/",
+   "downloadUrl": "https://github.com/saikatnjm/tempo/releases/latest",
+   "codeRepository": "https://github.com/saikatnjm/tempo",
+   "image": "https://saikatnjm.github.io/tempo/assets/social-card.png",
+   "screenshot": "https://saikatnjm.github.io/tempo/assets/float-both.png"
+  },
+  {
+   "@type": "BreadcrumbList",
+   "itemListElement": [
+    {
+     "@type": "ListItem",
+     "position": 1,
+     "name": "Tempo",
+     "item": "https://saikatnjm.github.io/tempo/"
+    },
+    {
+     "@type": "ListItem",
+     "position": 2,
+     "name": "System monitor",
+     "item": "https://saikatnjm.github.io/tempo/system-monitor.html"
+    }
+   ]
+  },
+  {
+   "@type": "FAQPage",
+   "mainEntity": [
+    {
+     "@type": "Question",
+     "name": "How do I show CPU and RAM usage in the GNOME top bar?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Install Tempo. Two rings appear at the right of the top bar: one fills with processor use, the other with memory use. Click them for the exact numbers."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Does it work on Ubuntu, Fedora, Debian and Arch?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. Tempo is a GNOME Shell extension, so it runs on any distribution with the GNOME desktop, versions 42 to 50: Ubuntu 22.04 to 26.04, Fedora, Debian 12 and 13, Arch, openSUSE and others. It does not run on KDE Plasma, Xfce or Cinnamon."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Will a system monitor slow my computer down?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "This one was measured so that it does not: the rings, temperature and network speed add no measurable processor load. One timer every 3 seconds reads three small files, and nothing is redrawn unless a value changed."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can I see which app is using the processor?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "Yes. The menu lists the four busiest apps. They are only measured while the menu is open."
+     }
+    },
+    {
+     "@type": "Question",
+     "name": "Can it show numbers instead of rings?",
+     "acceptedAnswer": {
+      "@type": "Answer",
+      "text": "The numbers are one click away in the menu, and the floating system panel shows the percentages all the time. The top bar itself stays calm on purpose."
+     }
+    }
+   ]
+  }
+ ]
+}
+</script>
+</head>
+<body>
+<!-- Made by tools/site.py. Change the texts there, not here. -->
+<div class="wrap">
+<nav aria-label="Tempo">
+  <img src="assets/logo.svg" alt="" width="34" height="34">
+  <a class="home" href="./">Tempo</a>
+  <a href="system-monitor.html" aria-current="page">System monitor</a>
+  <a href="network-speed.html">Internet speed</a>
+  <a href="music-visualizer.html">Music visualizer</a>
+  <a href="cpu-temperature.html">CPU temperature</a>
+  <a href="fan-control.html">Fans</a>
+  <a href="desktop-widgets.html">Desktop widgets</a>
+  <a href="install.html">Install</a>
+</nav>
+<p class="crumbs"><a href="./">Tempo</a> › System monitor</p>
+
+<h1>A super light system monitor for your top bar</h1>
+<p class="lead">Tempo puts your processor, memory and temperature in the GNOME top bar as two small rings and a number, and keeps the details one click away. It was built on a laptop that runs hot, so it does nothing unless something on screen needs to change.</p>
+<div class="buttons">
+  <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">Download for GNOME 45+</a>
+  <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
+  <a class="button" href="install.html">Install guide</a>
+</div>
+<ul class="facts">
+  <li><b>Free</b> and open source</li>
+  <li><b>GNOME 42 to 50</b> on Ubuntu, Fedora, Debian, Arch and more</li>
+  <li><b>250 KB</b>, nothing else installed</li>
+</ul>
+<figure><img src="assets/bar-ember.png" width="466" alt="Tempo in the top bar: music bars, a processor ring, a memory ring, the temperature and the network speed"><figcaption>Tempo in the top bar, twice life size: music bars, processor, memory, temperature, network speed.</figcaption></figure>
+
+<section>
+  <h2>What you get</h2>
+  <ul class="points">
+    <li><b>Processor and memory as rings.</b> One ring fills as the processor gets busier, the other as memory is used. No numbers to read; a glance is enough.</li>
+    <li><b>Temperature next to them</b>, turning amber above 75 °C and red above 85 °C. <a href="cpu-temperature.html">More about temperature</a>.</li>
+    <li><b>The details in one menu:</b> processor usage and clock speed, load average, memory and swap, graphics and disk temperature, every fan, network speed, and the four busiest apps.</li>
+    <li><b>Internet speed</b> as two small lines of fixed width, if you switch it on. <a href="network-speed.html">More about network speed</a>.</li>
+    <li><b>On the desktop instead, if you like:</b> a floating system panel with the same readings and a little fan. <a href="desktop-widgets.html">More about the panels</a>.</li>
+    <li><b>Yours to tune:</b> every part has its own switch, readings refresh every 1 to 10 seconds (3 by default), and there are four palettes.</li>
+  </ul>
+  <div class="pair">
+<figure><img src="assets/menu.png" width="300" alt="Tempo&#x27;s menu: processor, memory, temperature, fan, network and the busiest apps" loading="lazy"><figcaption>One click shows the numbers.</figcaption></figure>
+</div>
+</section>
+
+<section>
+  <h2>What it costs your computer</h2>
+  <p>Measured on a 2019 laptop (Ryzen 5 3500U, GNOME Shell 42) with the project's own benchmark, which anyone can run with <code>make bench</code>. Figures are percent of one processor core.</p>
+  <div class="scroll">
+  <table>
+    <tbody>
+      <tr><td>Rings, temperature and network speed in the top bar</td><td>Nothing measurable</td></tr>
+      <tr><td>The same in the floating system panel</td><td>0.2 %</td></tr>
+      <tr><td>Menu details (busiest apps, fans, disk)</td><td>Read only while the menu is open</td></tr>
+      <tr><td>While the screens are off</td><td>Nothing runs</td></tr>
+      <tr><td>Installed size</td><td>250 KB, no background service</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>One timer every 3 seconds reads three small files in <code>/proc</code> and one sensor. A ring is repainted only when its percentage changes, a label only when its text changes. <a href="./#light">How Tempo stays light</a>.</p>
+</section>
+
+<section>
+  <h2>Turn it on</h2>
+  <ol class="steps">
+    <li><b>Install Tempo</b> with the buttons above (the <a href="install.html">install guide</a> has every step).</li>
+    <li><b>That is all.</b> The two rings and the temperature appear at the right of the top bar. Click them for the menu.</li>
+    <li><b>Adjust</b> what is shown under <b>Settings</b>, at the bottom of that menu.</li>
+  </ol>
+</section>
+
+<section>
+  <h2>Questions</h2>
+  <details><summary>How do I show CPU and RAM usage in the GNOME top bar?</summary><p>Install Tempo. Two rings appear at the right of the top bar: one fills with processor use, the other with memory use. Click them for the exact numbers.</p></details>
+  <details><summary>Does it work on Ubuntu, Fedora, Debian and Arch?</summary><p>Yes. Tempo is a GNOME Shell extension, so it runs on any distribution with the GNOME desktop, versions 42 to 50: Ubuntu 22.04 to 26.04, Fedora, Debian 12 and 13, Arch, openSUSE and others. It does not run on KDE Plasma, Xfce or Cinnamon.</p></details>
+  <details><summary>Will a system monitor slow my computer down?</summary><p>This one was measured so that it does not: the rings, temperature and network speed add no measurable processor load. One timer every 3 seconds reads three small files, and nothing is redrawn unless a value changed.</p></details>
+  <details><summary>Can I see which app is using the processor?</summary><p>Yes. The menu lists the four busiest apps. They are only measured while the menu is open.</p></details>
+  <details><summary>Can it show numbers instead of rings?</summary><p>The numbers are one click away in the menu, and the floating system panel shows the percentages all the time. The top bar itself stays calm on purpose.</p></details>
+</section>
+
+<section>
+  <h2>Also in Tempo</h2>
+  <p>Tempo is one small GNOME Shell extension. Every part has its own switch, and a part that is off costs nothing.</p>
+  <div class="grid">
+    <a class="card" href="network-speed.html"><h3>Internet speed</h3><p>Download and upload speed in the top bar, in a width that never changes.</p></a>
+    <a class="card" href="music-visualizer.html"><h3>Music visualizer</h3><p>Bars that move with your music, in the top bar or floating on the desktop.</p></a>
+    <a class="card" href="cpu-temperature.html"><h3>CPU temperature</h3><p>The processor&#x27;s temperature in the top bar, amber and red when it gets hot.</p></a>
+    <a class="card" href="fan-control.html"><h3>Fans</h3><p>Every fan and its speed, and an optional cooler fan curve for late starters.</p></a>
+    <a class="card" href="desktop-widgets.html"><h3>Desktop widgets</h3><p>Floating panels for your desktop: system readings and a music visualizer.</p></a>
+  </div>
+</section>
+</div>
+
+<footer class="wrap">
+  <a href="./">Tempo</a> ·
+  <a href="install.html">Install</a> ·
+  <a href="https://github.com/saikatnjm/tempo">Source</a> ·
+  <a href="install.html#versions">All versions</a> ·
+  <a href="https://github.com/saikatnjm/tempo/issues">Report a problem</a><br>
+  Free software under the GPL-3.0-or-later licence. Not affiliated with or endorsed by the GNOME Foundation.
+</footer>
+</body>
+</html>

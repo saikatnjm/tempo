@@ -6,6 +6,13 @@ All notable changes to Tempo are listed here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Tempo now introduces itself as what most people use it for: a super light system monitor for
+  the top bar. The website has a page for each thing it does (system monitor, CPU temperature,
+  internet speed, music visualizer, desktop widgets, fans), and the extension's own description
+  says the same. Nothing about how it works has changed.
+
 ## [1.2.0] - 2026-11-23
 
 ### Added

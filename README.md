@@ -5,9 +5,9 @@
 <h1 align="center">Tempo</h1>
 
 <p align="center">
-  <b>Your system and your music, at a glance.</b><br>
-  CPU and memory rings, temperature, network speed and music visuals for the GNOME top bar,<br>
-  and optional floating panels for your desktop. Small, quiet, and every part has its own switch.
+  <b>A super light system monitor for the GNOME top bar.</b><br>
+  CPU and memory rings, temperature, internet speed and fans at a glance on Linux,<br>
+  with a music visualizer and desktop widgets when you want them. Every part has its own switch.
 </p>
 
 <p align="center">
@@ -21,6 +21,19 @@
 </p>
 
 **Website:** <https://saikatnjm.github.io/tempo/>
+
+Tempo is one small GNOME Shell extension that does six things people usually install separately,
+and costs next to nothing to run (the readings add no measurable processor load; every figure
+is [measured](#light-by-design)):
+
+- a [lightweight system monitor](https://saikatnjm.github.io/tempo/system-monitor.html) for the top bar: CPU and memory rings, with the details one click away
+- [CPU temperature](https://saikatnjm.github.io/tempo/cpu-temperature.html) in the top bar, amber and red when it gets hot
+- an [internet speed meter](https://saikatnjm.github.io/tempo/network-speed.html): download and upload speed in a width that never changes
+- a [music visualizer for Linux](https://saikatnjm.github.io/tempo/music-visualizer.html): bars in the top bar or floating on the desktop
+- [desktop widgets for GNOME](https://saikatnjm.github.io/tempo/desktop-widgets.html): a floating system panel and visualizer
+- [fan speeds, and optional fan control](https://saikatnjm.github.io/tempo/fan-control.html) for computers that start their fans too late
+
+It works on Ubuntu, Fedora, Debian, Arch and every other distribution with GNOME 42 to 50.
 
 ## What you get
 
