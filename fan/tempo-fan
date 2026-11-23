@@ -4,14 +4,19 @@
 # Some computers start their fans late (a Dell Inspiron 3505 waits until about 90 °C) or never
 # let the user choose. tempo-fan drives every fan Linux can control, through the kernel's
 # standard hwmon interface, so it works the same on any distribution and any hardware that
-# exposes one:
+# exposes one. It knows three kinds of fan:
 #
-#   * fans with a speed and an "enable" switch (pwmN + pwmN_enable): desktop motherboards
-#     (Nuvoton, ITE, Fintek chips), AMD graphics cards, ASUS/ThinkPad/Framework laptops. They are
-#     switched to manual while tempo-fan runs and given back to automatic when it stops.
-#   * fans with a speed only (pwmN, no enable): Dell laptops (dell_smm). Their controller
-#     quantises the speed to off / low / high.
-#   * fans Linux can only read (fanN_input without pwmN): left alone.
+#   auto    a speed and an "enable" switch (pwmN + pwmN_enable): desktop motherboards (Nuvoton,
+#           ITE, Fintek chips), AMD graphics cards, ASUS/ThinkPad/Framework laptops. They are
+#           switched to manual while tempo-fan runs and given back to automatic when it stops.
+#   step    Dell laptops (dell_smm): a speed without a switch, which the controller quantises
+#           to off / low / high. The laptop's own firmware takes over whenever they are left
+#           alone. When handed back they are switched off only if the machine is cool enough.
+#   plain   any other fan with a speed but no switch (fan hubs and the like). Nothing takes over
+#           from these, so they are never stopped, and get their old speed back at the end.
+#
+# Fans Linux can only read (fanN_input without pwmN), and fans that refuse to be driven, are left
+# alone.
 #
 # Modes, read from /var/lib/tempo-fan/mode (a file the desktop user owns, so Tempo can change
 # it without a password):
@@ -19,16 +24,20 @@
 #   max    every fan at full speed
 #   auto   hands off: every fan back to its own automatic control
 #
-# The "cool" curve, per fan, from the temperature that fan is cooling (the graphics card's own
+# The "cool" mode, per fan, from the temperature that fan is cooling (the graphics card's own
 # sensor for a graphics-card fan, the processor otherwise):
-#   below 60 °C          the fan's floor: off on laptops with speed steps, 30 % otherwise
-#   60 °C .. 85 °C       rising evenly to full speed
-#   85 °C and above      full speed
-# A fan only slows down once the temperature has dropped 4 °C below where it sped up, so it does
-# not hunt up and down.
+#   auto and plain fans: 30 % below 60 °C, rising evenly to full speed at 85 °C. They only slow
+#   down once the temperature has dropped 4 °C, so they don't hunt up and down.
+#   step fans: fixed points with wide gaps, so the fan stays on or off for minutes, not seconds:
+#       off  -> low   at 70 °C        low  -> off  below 58 °C
+#       low  -> high  at 85 °C        high -> low  below 76 °C
 #
 # Cost: no programs are started while running (bash built-ins only, even the wait), two or three
 # tiny files are read every 5 seconds, and a fan setting is written only when it changes.
+#
+# If something stops working (a fan can no longer be set, or its temperature can no longer be
+# read, as after a driver reload), tempo-fan gives up with an error: systemd then hands the fans
+# back (see "restore") and starts it afresh, which looks the hardware up again.
 #
 #   tempo-fan                 run (systemd starts it)
 #   tempo-fan restore [why]   give every fan back to automatic control; used by systemd after
@@ -36,41 +45,60 @@
 #                             that cannot go back to automatic are set to full speed instead.
 #   tempo-fan list            show what would be controlled, and exit
 set -u
+export LC_ALL=C             # error texts are looked at below, so keep them in one language
 
 HWMON=${TEMPO_FAN_HWMON:-/sys/class/hwmon}
 MODE_FILE=${TEMPO_FAN_MODE:-/var/lib/tempo-fan/mode}
 STATE=${TEMPO_FAN_STATE:-/run/tempo-fan}
 INTERVAL=${TEMPO_FAN_INTERVAL:-5}
-REMIND=6                    # readings between re-sending a speed to fans without an enable switch
+WAIT=${TEMPO_FAN_WAIT:-5}   # seconds between the first looks for fans that are not there yet
+SLOW=${TEMPO_FAN_SLOW:-60}  # ... and between the later ones
+REMIND=6                    # readings between re-sending a speed to step fans
+GIVE_UP=3                   # failed writes in a row before starting over
+BLIND=6                     # unreadable temperatures in a row before starting over
 T_LOW=60; T_HIGH=85         # °C: start of the ramp, full speed
-HYSTERESIS=4                # °C
-FLOOR=77                    # 30 % of 255, for fans that have an enable switch
+HYSTERESIS=4                # °C, for auto and plain fans
+FLOOR=77                    # 30 % of 255, the least an auto or plain fan is given
+STEP_ON=70; STEP_OFF=58     # °C, step fans: off <-> low
+STEP_HIGH=85; STEP_DOWN=76  # °C, step fans: low <-> high
+STEP_PWM=(0 128 255)        # off, low, high
 
-CPU_CHIPS=" k10temp zenpower coretemp cpu_thermal cpu-thermal soc_thermal thinkpad acpitz "
+# Where the processor's temperature comes from: the best sensor first. The order matters. Many
+# desktop boards also have an "acpitz" sensor that is stuck at a harmless-looking 27.8 °C; it
+# must never win over the processor's own sensor.
+CPU_CHIPS=(k10temp zenpower coretemp cpu_thermal cpu-thermal soc_thermal thinkpad acpitz)
 GPU_CHIPS=" amdgpu radeon nouveau xe i915 "
+STEP_CHIPS=" dell_smm "
 
 log() { printf '%s\n' "$*"; }
 
-chip_name() { local n; read -r n < "$1/name" 2>/dev/null && printf '%s' "$n"; }
+# chip_name <hwmon dir>: sets NAME; fails if the chip has none. (Redirecting errors first keeps
+# a missing file from being reported.)
+chip_name() { NAME=; read -r NAME 2>/dev/null < "$1/name"; [ -n "$NAME" ]; }
 
 # ---- discovery ---------------------------------------------------------------------------------
 # Fills these parallel arrays, one entry per controllable fan:
 #   F_PWM     path of pwmN
 #   F_ENABLE  path of pwmN_enable, or "" when the fan has none
+#   F_KIND    auto, step or plain (see the top of this file)
 #   F_TEMP    temperature file this fan follows
 #   F_FLOOR   lowest speed it is given in "cool" mode
 #   F_NAME    short description for the log
 discover() {
-    F_PWM=(); F_ENABLE=(); F_TEMP=(); F_FLOOR=(); F_NAME=()
-    local d name cpu_temp="" n pwm temp
-    for d in "$HWMON"/hwmon*; do
-        name=$(chip_name "$d") || continue
-        if [[ $CPU_CHIPS == *" $name "* ]] && [ -z "$cpu_temp" ] && [ -r "$d/temp1_input" ]; then
-            cpu_temp=$d/temp1_input
-        fi
+    F_PWM=(); F_ENABLE=(); F_KIND=(); F_TEMP=(); F_FLOOR=(); F_NAME=()
+    local d name wanted cpu_temp="" n pwm temp kind value answer
+    for wanted in "${CPU_CHIPS[@]}"; do
+        for d in "$HWMON"/hwmon*; do
+            chip_name "$d" || continue
+            if [ "$NAME" = "$wanted" ] && [ -r "$d/temp1_input" ]; then
+                cpu_temp=$d/temp1_input
+                break 2
+            fi
+        done
     done
     for d in "$HWMON"/hwmon*; do
-        name=$(chip_name "$d") || continue
+        chip_name "$d" || continue
+        name=$NAME
         for n in 1 2 3 4 5 6 7 8 9 10; do
             pwm=$d/pwm$n
             [ -e "$pwm" ] && [ -w "$pwm" ] || continue
@@ -80,42 +108,107 @@ discover() {
             fi
             [ -n "$temp" ] || { [ -r "$d/temp1_input" ] && temp=$d/temp1_input; }
             [ -n "$temp" ] || { log "skipping $name pwm$n: no temperature to follow"; continue; }
-            F_PWM+=("$pwm")
             if [ -e "${pwm}_enable" ]; then
-                F_ENABLE+=("${pwm}_enable"); F_FLOOR+=("$FLOOR")
+                # Some fans are there but refuse to be driven (a ThinkPad without fan_control=1).
+                # Ask in a way that changes nothing: write the switch's own value back.
+                value=; read -r value 2>/dev/null < "${pwm}_enable"
+                if [[ $value =~ ^[0-9]+$ ]]; then
+                    answer=$( { printf '%s' "$value" > "${pwm}_enable"; } 2>&1 )
+                    if [[ $answer == *"not permitted"* || $answer == *"ermission denied"* ]]; then
+                        log "skipping $name pwm$n: it refuses to be controlled"
+                        continue
+                    fi
+                fi
+                kind=auto
+            elif [[ $STEP_CHIPS == *" $name "* ]]; then
+                kind=step
             else
-                F_ENABLE+=(""); F_FLOOR+=(0)
+                kind=plain
             fi
+            F_PWM+=("$pwm")
+            F_KIND+=("$kind")
             F_TEMP+=("$temp")
             F_NAME+=("$name pwm$n")
+            case $kind in
+                auto)  F_ENABLE+=("${pwm}_enable"); F_FLOOR+=("$FLOOR") ;;
+                step)  F_ENABLE+=("");              F_FLOOR+=(0) ;;
+                plain) F_ENABLE+=("");              F_FLOOR+=("$FLOOR") ;;
+            esac
         done
     done
 }
 
-# ---- restore -----------------------------------------------------------------------------------
-# Every fan back to the control it had before tempo-fan touched it. The original enable values
-# are saved in $STATE/enable when tempo-fan starts; without them, 2 ("automatic") is used.
+# ---- remember, and restore ---------------------------------------------------------------------
+# What the fans were set to before tempo-fan touched them is kept in $STATE: the switch of every
+# auto fan in "enable", the speed of every plain fan in "pwm". A file that already has something
+# in it was left by a run that ended badly; it holds the true originals, so it is kept.
+remember() {
+    local i value
+    mkdir -p "$STATE"
+    if [ ! -s "$STATE/enable" ] && [ ! -s "$STATE/pwm" ]; then
+        : > "$STATE/enable"; : > "$STATE/pwm"
+        for i in "${!F_PWM[@]}"; do
+            value=
+            case ${F_KIND[i]} in
+                auto)
+                    read -r value 2>/dev/null < "${F_ENABLE[i]}"
+                    [[ $value =~ ^[0-9]+$ ]] && printf '%s %s\n' "${F_ENABLE[i]}" "$value" >> "$STATE/enable" ;;
+                plain)
+                    read -r value 2>/dev/null < "${F_PWM[i]}"
+                    [[ $value =~ ^[0-9]+$ ]] && printf '%s %s\n' "${F_PWM[i]}" "$value" >> "$STATE/pwm" ;;
+            esac
+        done
+    fi
+}
+
+# Every fan back to the control it had before tempo-fan touched it.
 restore() {
     local why=${1:-success} i saved line
     discover
-    declare -A orig=()
+    LEFT_ON=()                                    # step fans left running: see below
+    declare -A switch=() speed=()
     if [ -r "$STATE/enable" ]; then
         while read -r line; do
-            [[ $line == *" "* ]] && orig[${line% *}]=${line##* }
+            [[ $line == *" "* ]] && switch[${line% *}]=${line##* }
         done < "$STATE/enable"
     fi
+    if [ -r "$STATE/pwm" ]; then
+        while read -r line; do
+            [[ $line == *" "* ]] && speed[${line% *}]=${line##* }
+        done < "$STATE/pwm"
+    fi
     for i in "${!F_PWM[@]}"; do
-        if [ -n "${F_ENABLE[i]}" ]; then
-            saved=${orig[${F_ENABLE[i]}]:-2}
-            [[ $saved =~ ^[0-9]+$ ]] || saved=2
-            [ "$saved" = 1 ] && saved=2           # never leave a fan in manual mode
-            printf '%s' "$saved" > "${F_ENABLE[i]}" 2>/dev/null
-        elif [ "$why" = success ]; then
-            printf '0' > "${F_PWM[i]}" 2>/dev/null   # speed-step fans: the firmware takes over
-        else
-            printf '255' > "${F_PWM[i]}" 2>/dev/null # after a crash: full speed, never off
-        fi
+        case ${F_KIND[i]} in
+            auto)
+                saved=${switch[${F_ENABLE[i]}]:-2}
+                [[ $saved =~ ^[0-9]+$ ]] || saved=2
+                [ "$saved" = 1 ] && saved=2           # never leave a fan in manual mode
+                { printf '%s' "$saved" > "${F_ENABLE[i]}"; } 2>/dev/null ;;
+            step)
+                if [ "$why" != success ]; then
+                    { printf '255' > "${F_PWM[i]}"; } 2>/dev/null    # after a crash: never off
+                else
+                    # The laptop's firmware takes over. A fan is only switched off here if it
+                    # would be off in "cool" mode too; a hot machine keeps its fan running until
+                    # the firmware decides otherwise (or, in "auto" mode, until it has cooled).
+                    saved=; read -r saved 2>/dev/null < "${F_TEMP[i]}"
+                    if [[ $saved =~ ^-?[0-9]+$ ]] && (( saved / 1000 < STEP_ON )); then
+                        { printf '0' > "${F_PWM[i]}"; } 2>/dev/null
+                    else
+                        LEFT_ON[i]=1
+                    fi
+                fi ;;
+            plain)
+                # Nothing takes over from these: the speed they had, or full speed.
+                saved=255
+                [ "$why" = success ] && saved=${speed[${F_PWM[i]}]:-255}
+                [[ $saved =~ ^[0-9]+$ ]] && (( saved <= 255 )) || saved=255
+                { printf '%s' "$saved" > "${F_PWM[i]}"; } 2>/dev/null ;;
+        esac
     done
+    if [ "$why" = success ] && [ -d "$STATE" ]; then
+        : > "$STATE/enable"; : > "$STATE/pwm"     # handed back: nothing left to remember
+    fi
     log "fans given back to automatic control ($why)"
 }
 
@@ -137,7 +230,12 @@ case ${1:-run} in
         discover
         [ ${#F_PWM[@]} -gt 0 ] || { log "no controllable fans found"; exit 0; }
         for i in "${!F_PWM[@]}"; do
-            log "${F_NAME[i]}: ${F_ENABLE[i]:+has auto/manual switch, }follows ${F_TEMP[i]}"
+            case ${F_KIND[i]} in
+                auto)  what="has an auto/manual switch" ;;
+                step)  what="speed steps: off, low, high" ;;
+                plain) what="speed only, never stopped" ;;
+            esac
+            log "${F_NAME[i]}: $what, follows ${F_TEMP[i]}"
         done
         exit 0 ;;
     run) ;;
@@ -145,61 +243,103 @@ case ${1:-run} in
 esac
 
 # ---- run ---------------------------------------------------------------------------------------
+# No signal handlers on purpose: a stop signal ends this program at once, and systemd then runs
+# "tempo-fan restore" (ExecStopPost) to give the fans back. (A handler here would race with the
+# timed waits below: bash 5.1 can lose a wait's timeout when a handled signal arrives during it.)
+
+exec {pause}<> <(:)                       # "read -t" on a pipe that never closes: a wait that starts nothing
+
+# At boot the fan drivers may still be loading: look a few times quickly, then once a minute for
+# as long as it takes. Waiting costs nothing.
 discover
-for _ in 1 2 3 4 5 6; do                  # at boot the drivers may still be loading
-    [ ${#F_PWM[@]} -gt 0 ] && break
-    read -r -t 5 _ < <(:) || true
+looks=0
+while [ ${#F_PWM[@]} -eq 0 ]; do
+    looks=$(( looks + 1 ))
+    if (( looks == 6 )); then
+        log "no controllable fans found yet; looking again from time to time"
+        WAIT=$SLOW
+    fi
+    read -r -t "$WAIT" -u "$pause" _ || true
     discover
 done
-if [ ${#F_PWM[@]} -eq 0 ]; then
-    log "no controllable fans found; nothing to do"
-    exit 0
-fi
 
-mkdir -p "$STATE"
-: > "$STATE/enable"
+remember
 for i in "${!F_PWM[@]}"; do
-    if [ -n "${F_ENABLE[i]}" ]; then
-        read -r v < "${F_ENABLE[i]}" 2>/dev/null && printf '%s %s\n' "${F_ENABLE[i]}" "$v" >> "$STATE/enable"
-    fi
-    log "controlling ${F_NAME[i]}${F_ENABLE[i]:+ (auto/manual switch)}"
+    log "controlling ${F_NAME[i]} (${F_KIND[i]})"
 done
 
-# No signal handlers on purpose: a stop signal ends this loop at once, and systemd then runs
-# "tempo-fan restore" (ExecStopPost) to give the fans back. (A handler here would race with the
-# timed wait below: bash 5.1 can lose the wait's timeout when a handled signal arrives during it.)
-
-exec {pause}<> <(:)                       # "read -t" on an empty pipe: a wait that starts nothing
-
 mode=
-declare -a CUR=() USE=() SINCE=()
-declare -A TEMP_NOW=()
-for i in "${!F_PWM[@]}"; do CUR[i]=-1; USE[i]=0; SINCE[i]=0; done
+LEFT_ON=()
+declare -a CUR=() USE=() SINCE=() STEP=() FAILED=()
+declare -A TEMP_NOW=() UNREAD=()
+for i in "${!F_PWM[@]}"; do CUR[i]=-1; USE[i]=0; SINCE[i]=0; STEP[i]=0; FAILED[i]=0; done
 
 while :; do
-    read -r m < "$MODE_FILE" 2>/dev/null || m=
+    # The mode file belongs to the desktop user, so trust nothing about it: only a regular file
+    # is read, and only its first few characters. Anything but the three modes means "cool".
+    m=
+    if [[ -f $MODE_FILE && ! -L $MODE_FILE ]]; then
+        read -r -n 8 m 2>/dev/null < "$MODE_FILE" || true    # a missing final newline is fine
+    fi
     case $m in cool|max|auto) ;; *) m=cool ;; esac
     if [ "$m" != "$mode" ]; then
         log "mode: $m"
-        [ "$m" = auto ] && restore success
+        if [ "$m" = auto ]; then
+            restore success
+        elif [ "$mode" = auto ]; then
+            LEFT_ON=()
+            remember                              # taking the fans again: note how they are now
+        fi
         mode=$m
-        for i in "${!F_PWM[@]}"; do CUR[i]=-1; USE[i]=0; done
-        printf 'mode=%s fans=%d\n' "$mode" "${#F_PWM[@]}" > "$STATE/status"
+        for i in "${!F_PWM[@]}"; do CUR[i]=-1; USE[i]=0; STEP[i]=0; FAILED[i]=0; done
+        { printf 'mode=%s fans=%d\n' "$mode" "${#F_PWM[@]}" > "$STATE/status"; } 2>/dev/null
     fi
 
-    if [ "$mode" != auto ]; then
+    if [ "$mode" = auto ]; then
+        # Hands off. One thing is left to do: a step fan that was left running because the
+        # machine was hot is switched off once it has cooled, in case the firmware never did.
+        for i in "${!LEFT_ON[@]}"; do
+            milli=; read -r milli 2>/dev/null < "${F_TEMP[i]}"
+            if [[ $milli =~ ^-?[0-9]+$ ]] && (( milli / 1000 < STEP_OFF )); then
+                { printf '0' > "${F_PWM[i]}"; } 2>/dev/null
+                unset "LEFT_ON[$i]"
+            fi
+        done
+    else
         TEMP_NOW=()                               # each temperature file is read once per round
         for i in "${!F_PWM[@]}"; do
             path=${F_TEMP[i]}
             if [ -z "${TEMP_NOW[$path]:-}" ]; then
-                read -r milli < "$path" 2>/dev/null || milli=
-                [[ $milli =~ ^-?[0-9]+$ ]] || milli=95000   # unreadable or not a number: assume hot
+                milli=; read -r milli 2>/dev/null < "$path"
+                if [[ $milli =~ ^-?[0-9]+$ ]]; then
+                    UNREAD[$path]=0
+                else
+                    # Unreadable, or not a number: assume hot. If it stays that way, start over.
+                    milli=95000
+                    misses=${UNREAD[$path]:-0}
+                    misses=$(( misses + 1 ))
+                    UNREAD[$path]=$misses
+                    if (( misses >= BLIND )); then
+                        log "$path can no longer be read; starting over"
+                        exit 1
+                    fi
+                fi
                 TEMP_NOW[$path]=$(( milli / 1000 ))
             fi
             t=${TEMP_NOW[$path]}
 
             if [ "$mode" = max ]; then
                 want=255
+            elif [ "${F_KIND[i]}" = step ]; then
+                # Speed steps: move between off, low and high only at the fixed points.
+                s=${STEP[i]}
+                if (( t >= STEP_HIGH )); then s=2
+                elif (( s == 0 && t >= STEP_ON )); then s=1
+                elif (( s == 2 && t < STEP_DOWN )); then s=1
+                elif (( s == 1 && t < STEP_OFF )); then s=0
+                fi
+                STEP[i]=$s
+                want=${STEP_PWM[s]}
             else
                 # Follow a rise at once; follow a fall only once it is HYSTERESIS degrees.
                 if (( t > USE[i] || t <= USE[i] - HYSTERESIS )); then USE[i]=$t; fi
@@ -212,17 +352,30 @@ while :; do
             write=0
             # Write only real changes: steps of 8 or more, or reaching the floor or full speed.
             if (( change > 0 && (change >= 8 || want == 255 || want == F_FLOOR[i]) )); then write=1; fi
-            # Fans without an enable switch can have their speed dropped by the firmware: remind it.
-            if [ -z "${F_ENABLE[i]}" ] && (( SINCE[i] >= REMIND && want > 0 )); then write=1; fi
+            # The firmware of a step fan can drop the speed it was given: remind it.
+            if [ "${F_KIND[i]}" = step ] && (( SINCE[i] >= REMIND && want > 0 )); then write=1; fi
             if (( write )); then
+                ok=1
                 if [ -n "${F_ENABLE[i]}" ]; then
-                    read -r en < "${F_ENABLE[i]}" 2>/dev/null || en=
-                    [ "$en" = 1 ] || printf '1' > "${F_ENABLE[i]}" 2>/dev/null
+                    en=; read -r en 2>/dev/null < "${F_ENABLE[i]}"
+                    if [ "$en" != 1 ]; then
+                        { printf '1' > "${F_ENABLE[i]}"; } 2>/dev/null || ok=0
+                    fi
                 fi
-                if printf '%s' "$want" > "${F_PWM[i]}" 2>/dev/null; then
+                if (( ok )) && { printf '%s' "$want" > "${F_PWM[i]}"; } 2>/dev/null; then
                     (( want != CUR[i] )) && log "${t} °C: ${F_NAME[i]} -> $(( want * 100 / 255 )) %"
                     CUR[i]=$want
                     SINCE[i]=0
+                    FAILED[i]=0
+                else
+                    # The fan did not take it (its driver was reloaded, perhaps under a new
+                    # number). Leaving it at an old speed while things heat up is the one thing
+                    # that must not happen: start over, which hands it back first.
+                    FAILED[i]=$(( FAILED[i] + 1 ))
+                    if (( FAILED[i] >= GIVE_UP )); then
+                        log "${F_NAME[i]} can no longer be set; starting over"
+                        exit 1
+                    fi
                 fi
             fi
         done

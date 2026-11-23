@@ -1,9 +1,9 @@
 {
   "uuid": "tempo@saikatnjm.github.io",
   "name": "Tempo",
-  "description": "CPU and memory rings, temperature, network speed and music bars for the top bar. Small, quiet, and every part can be switched on or off.",
+  "description": "CPU and memory rings, temperature, network speed and music visuals for the top bar, plus optional floating panels for the desktop. Small, quiet, and every part can be switched on or off.",
   "shell-version": @SHELL_VERSIONS@,
-  "version": 2,
+  "version": 3,
   "version-name": "@VERSION@",
   "url": "https://github.com/saikatnjm/tempo",
   "settings-schema": "org.gnome.shell.extensions.tempo",

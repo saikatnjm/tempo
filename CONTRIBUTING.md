@@ -17,7 +17,9 @@ src/core/     all the real code, in files that are joined in name order
 src/shell/    a few lines of imports and the entry point, once for GNOME 42-44 ("legacy")
               and once for GNOME 45+ ("esm")
 src/prefs/    the settings window, built the same way
+fan/          the optional fan service: one bash script, its systemd unit and its installer
 tests/unit/   tests for parsing, formatting and the audio maths (plain gjs)
+tests/fan/    runs the fan service against fake fan hardware (no root, nothing real is touched)
 tests/smoke/  loads the built extension in a throwaway headless GNOME Shell
 docs/         the website
 ```
@@ -30,7 +32,7 @@ So `tools/build.sh` joins a small header, the shared core and a small footer int
 
 ```sh
 make build     # both variants into build/
-make test      # unit tests, no desktop needed
+make test      # unit tests and the fan service's tests, no desktop needed
 make smoke     # full run in a hidden, throwaway GNOME Shell; nothing on your desktop is touched
 make bench     # the processor cost of each part, measured in that hidden shell
 make install   # install for your user; log out and back in to load it
@@ -56,15 +58,21 @@ Two more tools:
 
 ## Ground rules for changes
 
-1. **Stay light.** Nothing may run on a timer faster than the user's refresh interval, and
-   nothing may run at all for a part that is switched off. Read hardware sensors with
+1. **Stay light.** Nothing may run at all for a part that is switched off, or for something
+   nobody can see (screens off, a fullscreen window in front). Readings follow the user's
+   refresh interval. Animation runs only where the user switched it on, at the lowest rate that
+   still reads as motion: every step is a repaint of the screen. Read hardware sensors with
    `readTextAsync`, never synchronously.
 2. **Every feature gets a switch**, and new features start switched off.
-3. **Redraw only on change.** Compare before you repaint or set a label.
+3. **Redraw only on change.** Compare before you repaint or set a label. For anything that
+   moves, draw it once and let the graphics card stretch, uncover or turn it afterwards.
 4. **Clean up in `destroy()`.** Every timer, signal, process and D-Bus subscription that is
    created must be removed there. The smoke test disables and enables the extension twice.
 5. **Both variants must work.** Use only APIs that exist from GNOME 42 on, and run the smoke
    test on at least one version from each side of 45 if you touch anything in the Shell UI.
+   The smoke test also fails on the warnings GNOME Shell logs for careless widget handling
+   (placing widgets by hand in the middle of a layout pass, or asking an off-screen widget for
+   its size), so read its last lines.
 6. Keep comments about *why*, in plain words.
 
 Run `make test` and `make smoke` before opening a pull request, and describe what you tested.

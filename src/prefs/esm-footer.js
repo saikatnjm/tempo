@@ -1,6 +1,6 @@
 
 export default class TempoPreferences extends ExtensionPreferences {
     fillPreferencesWindow(window) {
-        fillTempoPreferences(window, this.getSettings(), this.metadata);
+        fillTempoPreferences(window, this.getSettings(), this.metadata, this.path);
     }
 }

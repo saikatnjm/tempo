@@ -4,5 +4,5 @@ function init() {
 }
 
 function fillPreferencesWindow(window) {
-    fillTempoPreferences(window, ExtensionUtils.getSettings(), Me.metadata);
+    fillTempoPreferences(window, ExtensionUtils.getSettings(), Me.metadata, Me.path);
 }

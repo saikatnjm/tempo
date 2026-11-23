@@ -81,7 +81,8 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">GNOME 45 and newer</a>
     <a class="button" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome42-44.shell-extension.zip">GNOME 42, 43 and 44</a>
   </div>
-  <p class="note">Not sure which one? Step 1 below shows how to check, and the table further down lists each distribution. Looking for an earlier version? Every release is on the <a href="https://github.com/saikatnjm/tempo/releases">releases page</a>, with its changes listed.</p>
+  <p class="note">Not sure which one? Step 1 below shows how to check, and the table further down lists each distribution. Looking for an earlier version? <a href="#versions">Every version</a> is listed below with its own download links.</p>
+  <p class="note">On this page: <a href="#steps">install</a> · <a href="#distributions">by distribution</a> · <a href="#update">update</a> · <a href="#versions">all versions</a> · <a href="#remove">remove</a> · <a href="#fan">fan control</a> · <a href="#help">help</a></p>
 </section>
 
 <section id="steps">
@@ -142,23 +143,74 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <p class="note">Your distribution isn't listed? It doesn't matter: if <code>gnome-shell --version</code> shows 42 or newer, Tempo works. The music tool works with both PulseAudio and PipeWire.</p>
 </section>
 
-<section id="fan">
-  <h2>Optional: fan control</h2>
-  <p class="lead">If your computer starts its fans late, the optional tempo-fan service runs every fan Linux can control from its temperature, and adds a <b>Fan mode</b> switch to Tempo's menu (Cool, Full speed, Automatic). It needs the source code and administrator rights once:</p>
-<pre><code>git clone https://github.com/saikatnjm/tempo.git
-sudo bash tempo/fan/install.sh</code></pre>
-  <p class="note">It lists the fans it will control before starting, installs nothing if there are none, and <code>sudo bash tempo/fan/install.sh remove</code> gives every fan back to the computer. ThinkPads need <code>options thinkpad_acpi fan_control=1</code> in <code>/etc/modprobe.d/thinkpad_acpi.conf</code> first. <a href="https://github.com/saikatnjm/tempo/tree/main/fan">Details</a>.</p>
-</section>
-
 <section id="update">
   <h2>Update</h2>
-  <p class="lead">Download the newest file with the buttons above and run step 3 again, then log out and back in. Your settings are kept.</p>
+  <p class="lead">Updating is installing again over the old version. Your settings are kept.</p>
+  <ol class="steps">
+    <li>
+      <h3>See which version you have</h3>
+      <p class="note">Click Tempo in the top bar, open <b>Settings</b> and scroll to <b>About</b>. The newest version is the first row of the <a href="#versions">table below</a>.</p>
+    </li>
+    <li>
+      <h3>Download the newest file</h3>
+      <p class="note">Use the <a href="#download">buttons at the top of this page</a>: they always fetch the newest version.</p>
+    </li>
+    <li>
+      <h3>Install it over the old one</h3>
+<pre><code>gnome-extensions install --force ~/Downloads/tempo-gnome45-plus.shell-extension.zip</code></pre>
+      <p class="note">For GNOME 42 to 44 the file is <code>tempo-gnome42-44.shell-extension.zip</code>. <code>--force</code> is what replaces the old version.</p>
+    </li>
+    <li>
+      <h3>Log out and back in</h3>
+      <p class="note">GNOME keeps running the old version until you log in again. Settings, About then shows the new version.</p>
+    </li>
+  </ol>
+  <p class="note">Installed from source? <code>git pull &amp;&amp; make install</code> in the folder you cloned, then log out and back in. If you use the optional fan control and the release notes mention it, update that too: Settings, Fan control, Remove and then Install.</p>
+</section>
+
+<section id="versions">
+  <h2>All versions</h2>
+  <p class="lead">Every version stays available. To go back to an earlier one, download its file here and install it exactly like an update (step 3 above); your settings are kept.</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Version</th><th>Released</th><th>What it brought</th><th>Download</th></tr></thead>
+    <tbody>
+      <tr><td><b>1.2.0</b><br><span class="tag new">newest</span></td><td>23 Nov 2026</td><td>Floating panels for the desktop (system panel with a fan, segmented visualizer), optional fan control, and a much lighter way of listening to music. <a href="https://github.com/saikatnjm/tempo/releases/tag/v1.2.0">Notes</a></td>
+        <td><a href="https://github.com/saikatnjm/tempo/releases/download/v1.2.0/tempo-1.2.0-gnome45-plus.shell-extension.zip">GNOME&nbsp;45+</a><br><a href="https://github.com/saikatnjm/tempo/releases/download/v1.2.0/tempo-1.2.0-gnome42-44.shell-extension.zip">GNOME&nbsp;42–44</a></td></tr>
+      <tr><td><b>1.1.0</b></td><td>22 Nov 2026</td><td>The level line, every fan listed in the menu, GNOME 50 support. <a href="https://github.com/saikatnjm/tempo/releases/tag/v1.1.0">Notes</a></td>
+        <td><a href="https://github.com/saikatnjm/tempo/releases/download/v1.1.0/tempo-1.1.0-gnome45-plus.shell-extension.zip">GNOME&nbsp;45+</a><br><a href="https://github.com/saikatnjm/tempo/releases/download/v1.1.0/tempo-1.1.0-gnome42-44.shell-extension.zip">GNOME&nbsp;42–44</a></td></tr>
+      <tr><td><b>1.0.0</b></td><td>19 Nov 2026</td><td>First release: rings, temperature, network speed, music bars, the menu, four palettes. <a href="https://github.com/saikatnjm/tempo/releases/tag/v1.0.0">Notes</a></td>
+        <td><a href="https://github.com/saikatnjm/tempo/releases/download/v1.0.0/tempo-1.0.0-gnome45%2B.shell-extension.zip">GNOME&nbsp;45+</a><br><a href="https://github.com/saikatnjm/tempo/releases/download/v1.0.0/tempo-1.0.0-gnome42-44.shell-extension.zip">GNOME&nbsp;42–44</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="note">The full list of changes is in the <a href="https://github.com/saikatnjm/tempo/blob/main/CHANGELOG.md">changelog</a>, and every release with its files is on the <a href="https://github.com/saikatnjm/tempo/releases">releases page</a>. Version 1.0.0 does not run on GNOME 50.</p>
 </section>
 
 <section id="remove">
   <h2>Remove</h2>
+  <ol class="steps">
+    <li>
+      <h3>If you installed the optional fan control, remove that first</h3>
+      <p class="note">In Tempo's <b>Settings</b>, under <b>Fan control</b>, press <b>Remove</b>. (Or, from the source folder: <code>sudo bash fan/install.sh remove</code>.) Every fan goes back to the computer's own control. Skip this step if you never installed it.</p>
+    </li>
+    <li>
+      <h3>Remove Tempo</h3>
 <pre><code>gnome-extensions uninstall tempo@saikatnjm.github.io</code></pre>
-  <p class="note">This removes Tempo completely. To also forget its settings: <code>dconf reset -f /org/gnome/shell/extensions/tempo/</code></p>
+      <p class="note">Or open the <b>Extensions</b> app and press Remove on Tempo. Nothing of it keeps running, and nothing else was ever installed: Tempo is one folder in your home directory.</p>
+    </li>
+    <li>
+      <h3>Optional: forget its settings too</h3>
+<pre><code>dconf reset -f /org/gnome/shell/extensions/tempo/</code></pre>
+    </li>
+  </ol>
+</section>
+
+<section id="fan">
+  <h2>Optional: fan control</h2>
+  <p class="lead">If your computer starts its fans late, the optional tempo-fan service runs every fan Linux can control from its temperature, and adds a <b>Fan mode</b> switch to Tempo's menu (Cool, Full speed, Automatic). Tempo works without it; most computers don't need it.</p>
+  <p class="lead">To install it, open Tempo's <b>Settings</b>, scroll to <b>Fan control</b> and press <b>Install</b>. GNOME asks for your password once, because fans can only be driven with administrator rights. The same button removes it again.</p>
+  <p class="note">Or from the source code: <code>git clone https://github.com/saikatnjm/tempo.git</code> and <code>sudo bash tempo/fan/install.sh</code>. Either way it lists the fans it will control before starting and installs nothing if there are none. ThinkPads need <code>options thinkpad_acpi fan_control=1</code> in <code>/etc/modprobe.d/thinkpad_acpi.conf</code> first. It needs systemd, which every major distribution uses. <a href="https://github.com/saikatnjm/tempo/tree/main/fan">Details and safety</a>.</p>
 </section>
 
 <section id="not-supported">
@@ -183,6 +235,12 @@ sudo bash tempo/fan/install.sh</code></pre>
     <p>Check that <b>React to music</b> is on, that sound is actually playing, and that <code>parec</code> is installed (table above). The player must support standard media controls: if it appears in GNOME's media controls in the notification list, it does.</p></details>
   <details><summary>The temperature isn't shown</summary>
     <p>Your computer has no temperature sensor Tempo recognises yet. Please <a href="https://github.com/saikatnjm/tempo/issues">open an issue</a> with the output of <code>grep . /sys/class/hwmon/hwmon*/name</code>.</p></details>
+  <details><summary>A floating panel can't be dragged</summary>
+    <p>A panel on the desktop sits behind everything else, so a click only reaches it where nothing is in front. If your desktop shows icons (Ubuntu's Desktop Icons does), or you use the older X11 session, the click never arrives. In Settings, set <b>Place them</b> to <b>On top of windows</b>, move and size the panel, then switch back to <b>On the desktop</b>.</p></details>
+  <details><summary>A floating panel is gone after unplugging a screen</summary>
+    <p>It comes back to the main screen by itself, and returns to its place when the screen is plugged in again. To put a panel back where it started: <code>gsettings --schemadir ~/.local/share/gnome-shell/extensions/tempo@saikatnjm.github.io/schemas reset org.gnome.shell.extensions.tempo float-stats-rect</code> (or <code>float-viz-rect</code> for the visualizer).</p></details>
+  <details><summary>I updated but still see the old version</summary>
+    <p>Log out and back in: GNOME loads an extension once per login. If Settings, About still shows the old number after that, the file for the other GNOME version was installed; install the right one (step 3).</p></details>
   <details><summary>Still stuck?</summary>
     <p><a href="https://github.com/saikatnjm/tempo/issues">Open an issue on GitHub</a> with your distribution, the output of <code>gnome-shell --version</code>, and what you see.</p></details>
 </section>

@@ -7,10 +7,12 @@
 //  * Drawing: a ring or label is only repainted when the value it shows changes.
 //  * Menu details (fan, disk temperature, busiest apps, what is playing) are read only while
 //    the menu is open; the hover tip asks the players only when the pointer rests on the bars.
-//  * Music visuals (the small bars or the level line along the top bar): nothing runs
-//    until a media player reports "Playing"; then one small recorder process runs until
-//    shortly after it pauses, and not at all while a fullscreen window hides the top bar.
-//    The small bars and the level line are fed from the same frames.
+//  * Music visuals (the small bars or the level line along the top bar, or the visualizer
+//    panel): nothing runs until a media player reports "Playing"; then one small recorder
+//    process runs until shortly after it pauses, and not at all while a fullscreen window
+//    covers the place where the visuals are drawn.
+//  * Screens off (blanked after a while without input): nothing is read, listened to or
+//    animated until they are back on.
 
 const BAR_COUNT = 10;
 const REFRESH_MIN_S = 1;
@@ -30,9 +32,16 @@ const TEMP_HOT_C = 85;
 const TEMP_MISSES_BEFORE_RESCAN = 3;
 const FAN_MAX_RPM = 20000;           // anything above is a bogus reading
 const FAN_ROWS = 4;                  // most fans listed in the menu
+// For the system panel's fan, every second reading is enough: fans change speed slowly, and on
+// some laptops (Dell) each question to the fan controller briefly holds up the whole machine.
+const FAN_EVERY = 2;
+const FAN_MODE_EVERY = 20;           // readings between looks at the fan service's mode
+const SENSOR_SEARCH_FIRST = 20;      // readings before looking again for a missing sensor ...
+const SENSOR_SEARCH_MAX = 1200;      // ... then four times as long each time, up to this many
 // Written by the optional tempo-fan service (see fan/ in the source); the user owns it.
 const FAN_MODE_FILE = GLib.getenv('TEMPO_FAN_MODE') || '/var/lib/tempo-fan/mode';
 const FAN_MODES = ['cool', 'max', 'auto'];
+const TEMPO_WEBSITE = 'https://saikatnjm.github.io/tempo/';
 // Candidates for the widest network value: every digit three times, and each unit.
 const NET_WIDEST_SAMPLES = ['000M', '111M', '222M', '333M', '444M', '555M', '666M', '777M', '888M',
     '999M', '888K', '888G'];
@@ -60,11 +69,15 @@ class TempoIndicator {
         this._timers = new Map();
         this._refreshId = 0;
         this._refreshInterval = 0;
+        this._samples = 0;               // readings taken so far
+        this._screenOff = false;
 
         this._sampler = new Sampler();
         this._sensors = findSensors();
         this._sensorMisses = 0;
         this._sensorRescanAt = TEMP_MISSES_BEFORE_RESCAN;
+        this._sensorSearchGap = SENSOR_SEARCH_FIRST;     // readings between looks for a missing sensor
+        this._sensorSearchAt = SENSOR_SEARCH_FIRST;
         this._procs = new ProcScanner(this._sampler.cpuCount, list => this._showProcesses(list));
 
         this._cpu = null;
@@ -74,6 +87,7 @@ class TempoIndicator {
         this._tempClass = '';
         this._ghz = '';
         this._netSlotWidth = 0;
+        this._netFont = '';
         this._sizingNet = false;
 
         this._players = null;
@@ -85,6 +99,13 @@ class TempoIndicator {
         this._musicStyle = 'bars';       // 'bars' or 'strip' (the level line)
         this._fps = 0;
         this._palette = null;
+        this._stats = null;              // floating system panel, when shown
+        this._vizPanel = null;           // floating visualizer panel, when shown
+        this._viz = null;
+        this._floatStatsOn = false;
+        this._vizOn = false;
+        this._musicOn = false;
+        this._bands = BAR_COUNT;         // bands the recorder is set up for
         this._strip = null;
         this._panelBoxId = 0;
         this._tip = null;
@@ -105,11 +126,20 @@ class TempoIndicator {
             this._mixer = null;      // no mixer: the bars simply don't follow output switches
         }
 
-        // While a fullscreen window covers the top bar nobody can see the bars: don't listen.
+        // While a fullscreen window covers the music visuals nobody can see them: don't listen.
         this._fullscreenId = global.display.connect('in-fullscreen-changed',
             () => this._onFullscreenChanged());
+        // While the screens are off nobody can see anything: do nothing at all.
+        this._screen = new ScreenWatch(off => this._onScreenPower(off));
 
-        this._settingsId = this._settings.connect('changed', () => this._applySettings());
+        this._settingsId = this._settings.connect('changed', (_settings, key) => {
+            // Where a panel was dropped is the panel's own business (see FloatPanel). All it can
+            // change here is which screen the visuals are on, and so whether they are covered.
+            if (key.endsWith('-rect'))
+                this._onFullscreenChanged();
+            else
+                this._applySettings();
+        });
         this._applySettings();
         // Rates need two readings; take the second one soon so the rings fill in right away.
         this._setTimer('warmup', MENU_FOLLOWUP_MS, () => this._refresh());
@@ -138,9 +168,12 @@ class TempoIndicator {
             this._mixer.disconnect(this._mixerId);
         this._mixer = null;
         global.display.disconnect(this._fullscreenId);
+        this._screen.destroy();
         this._removeStrip();
         this._removeTip();
+        this._removeFloats();
         this._bars.actor.remove_all_transitions();
+        this._button._tempoIndicator = null;
         this._button.destroy();
         this._button = null;
     }
@@ -150,6 +183,9 @@ class TempoIndicator {
     _buildButton(path) {
         this._button = new PanelMenu.Button(0.5, 'Tempo', false);
         this._button.add_style_class_name('tempo-button');
+        // For the test suite and for looking around in Looking Glass:
+        // Main.panel.statusArea['tempo@saikatnjm.github.io']._tempoIndicator
+        this._button._tempoIndicator = this;
 
         const box = new St.BoxLayout({style_class: 'tempo-box'});
         this._bars = new BarsWidget(BAR_COUNT);
@@ -216,6 +252,15 @@ class TempoIndicator {
         this._sizingNet = true;
         try {
             const label = this._netDown;
+            // "style-changed" also comes with every hover and press of the button; the widths
+            // only depend on the font, so measure again only when that is another one.
+            const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+            const font = `${label.get_theme_node().get_font().to_string()} x${scale}`;
+            if (font === this._netFont) {
+                this._sizingNet = false;
+                return;
+            }
+            this._netFont = font;
             const shown = label.text;
             let widest = 0;
             for (const sample of NET_WIDEST_SAMPLES) {
@@ -313,12 +358,40 @@ class TempoIndicator {
         this._musicHint.visible = false;
         menu.addMenuItem(this._musicHint);
 
+        // Floating panels: one line in the menu, two switches inside.
+        this._floatMenu = new PopupMenu.PopupSubMenuMenuItem(_('Floating panels'));
+        this._floatMenu.add_style_class_name('tempo-row');
+        this._floatSwitches = {};
+        for (const [key, title] of [['float-stats', _('System panel')], ['float-viz', _('Visualizer panel')]]) {
+            const item = new PopupMenu.PopupSwitchMenuItem(title, false);
+            item.connect('toggled', (_item, state) => {
+                if (state !== this._settings.get_boolean(key))
+                    this._settings.set_boolean(key, state);
+            });
+            this._floatMenu.menu.addMenuItem(item);
+            this._floatSwitches[key] = item;
+        }
+        menu.addMenuItem(this._floatMenu);
+
         this._monitorItem = menu.addAction(_('Open System Monitor'), () => {
             const app = this._findSystemMonitor();
             if (app !== null)
                 app.activate();
         });
         menu.addAction(_('Settings'), () => this._openPreferences());
+
+        // A small link to the project's website, at the very bottom.
+        const link = new PopupMenu.PopupMenuItem(_('saikatnjm.github.io/tempo'));
+        link.add_style_class_name('tempo-link');
+        link.label.opacity = 150;            // the menu's own text colour, faded: fine on any theme
+        link.connect('activate', () => {
+            try {
+                Gio.AppInfo.launch_default_for_uri(TEMPO_WEBSITE, global.create_app_launch_context(0, -1));
+            } catch (e) {
+                console.error(`Tempo: could not open the website: ${e.message}`);
+            }
+        });
+        menu.addMenuItem(link);
 
         menu.connect('open-state-changed', (_menu, open) => this._onMenuToggled(open));
     }
@@ -349,7 +422,8 @@ class TempoIndicator {
         this._button.menu.addMenuItem(this._fanMode);
     }
 
-    // Only while the menu opens: is the service installed, and which mode is it in?
+    // Is the fan service installed, and which mode is it in? Asked when the menu opens, when the
+    // system panel appears, and once in a long while as long as that panel is shown.
     _syncFanMode() {
         const file = Gio.File.new_for_path(FAN_MODE_FILE);
         file.query_info_async('access::can-write', Gio.FileQueryInfoFlags.NONE, GLib.PRIORITY_LOW,
@@ -363,8 +437,10 @@ class TempoIndicator {
                 if (this._destroyed)
                     return;
                 this._fanMode.visible = writable;
-                if (!writable)
+                if (!writable) {
+                    this._stats?.setFanMode(null);
                     return;
+                }
                 readTextAsync(FAN_MODE_FILE, this._cancellable, text => {
                     const mode = (text ?? '').trim();
                     this._showFanMode(FAN_MODES.includes(mode) ? mode : 'cool');
@@ -374,6 +450,7 @@ class TempoIndicator {
 
     _showFanMode(mode) {
         setLabel(this._fanMode.label, `${_('Fan mode')}: ${this._fanModeNames[mode]}`);
+        this._stats?.setFanMode(this._fanModeNames[mode]);
         const dot = PopupMenu.Ornament.DOT ?? PopupMenu.Ornament.CHECK;
         for (const [m, item] of this._fanModeItems)
             item.setOrnament(m === mode ? dot : PopupMenu.Ornament.NONE);
@@ -443,9 +520,12 @@ class TempoIndicator {
 
     // The refresh timer exists only while there is something to refresh.
     _syncRefreshTimer() {
-        const needed = !this._destroyed && (this._showCpu || this._showMemory ||
-            this._showNetwork || (this._showTemperature && this._sensors.cpu !== null) ||
-            this._button.menu.isOpen);
+        // The top bar's own readings count only while the top bar can be seen, and the system
+        // panel's only while no fullscreen window covers its screen.
+        const bar = !this._fullscreenOn(Main.layoutManager.primaryMonitor) && (this._showCpu ||
+            this._showMemory || this._showNetwork || this._showTemperature);
+        const panel = this._stats !== null && !this._fullscreenOn(this._monitorOf(this._stats.panel.actor));
+        const needed = !this._destroyed && !this._screenOff && (bar || panel || this._button.menu.isOpen);
         if (needed && this._refreshId && this._refreshInterval === this._interval)
             return;
         if (this._refreshId) {
@@ -473,6 +553,8 @@ class TempoIndicator {
         this._showNetwork = s.get_boolean('show-network');
         this._fahrenheit = s.get_string('temperature-unit') === 'fahrenheit';
         this._interval = clamp(s.get_int('refresh-interval'), REFRESH_MIN_S, REFRESH_MAX_S);
+        this._floatStatsOn = s.get_boolean('float-stats');
+        this._vizOn = s.get_boolean('float-viz');
 
         const name = s.get_string('palette');
         this._palette = PALETTES.has(name) ? PALETTES.get(name) : PALETTES.get(DEFAULT_PALETTE);
@@ -480,7 +562,11 @@ class TempoIndicator {
         this._memoryRing.setColor(this._palette ? this._palette.memory : null);
         this._bars.setPalette(this._palette ? this._palette.bars : null);
 
+        // One view at a time: a floating panel replaces its part of the top bar while it is on.
+        if (this._floatStatsOn)
+            this._showCpu = this._showMemory = this._showTemperature = this._showNetwork = false;
         this._syncVisibility();
+        this._syncFloats();
         this._syncMusic();
         this._syncStrip();
         this._syncMusicActors();
@@ -515,34 +601,57 @@ class TempoIndicator {
     }
 
     _sample() {
+        if (this._screenOff)
+            return;
         const menuOpen = this._button.menu.isOpen;
         const maxAge = this._interval * 3 + 2;
+        const count = this._samples++;
 
-        if (this._showCpu || menuOpen) {
+        const panel = this._stats;
+        if (this._showCpu || menuOpen || panel) {
             const cpu = this._sampler.cpu(maxAge);
             if (cpu !== null) {
                 this._cpu = cpu;
                 this._cpuRing.set(cpu);
+                panel?.setCpu(cpu);
             }
         }
-        if (this._showMemory || menuOpen) {
+        if (this._showMemory || menuOpen || panel) {
             const memory = this._sampler.memory();
             if (memory !== null) {
                 this._memory = memory;
-                this._memoryRing.set((memory.total - memory.available) / memory.total);
+                const used = (memory.total - memory.available) / memory.total;
+                this._memoryRing.set(used);
+                panel?.setMemory(used);
             }
         }
-        if (this._showNetwork || menuOpen) {
+        if (this._showNetwork || menuOpen || panel) {
             const network = this._sampler.network(maxAge);
             if (network !== null) {
                 this._network = network;
                 setLabel(this._netDown, formatRateCompact(network.down));
                 setLabel(this._netUp, formatRateCompact(network.up));
+                panel?.setNetwork(network.down, network.up);
             }
         }
-        if ((this._showTemperature || menuOpen) && this._sensors.cpu !== null) {
-            readTextAsync(this._sensors.cpu, this._cancellable,
-                text => this._onTemperature(text));
+        if (this._showTemperature || menuOpen || panel) {
+            if (this._sensors.cpu !== null) {
+                readTextAsync(this._sensors.cpu, this._cancellable,
+                    text => this._onTemperature(text));
+            } else if (count >= this._sensorSearchAt) {
+                // No sensor (yet): its driver may load late, or come back after a reload. Look
+                // again now and then, less and less often.
+                this._sensorSearchGap = Math.min(SENSOR_SEARCH_MAX, this._sensorSearchGap * 4);
+                this._sensorSearchAt = count + this._sensorSearchGap;
+                this._rescanSensors();
+            }
+        }
+        if (this._sensors.fans.length > 0) {
+            // One reading serves the menu and the panel alike.
+            if (menuOpen || (panel !== null && count % FAN_EVERY === 0))
+                this._refreshFans();
+            if (panel !== null && count % FAN_MODE_EVERY === 0)
+                this._syncFanMode();
         }
         if (menuOpen)
             this._refreshMenu();
@@ -562,10 +671,7 @@ class TempoIndicator {
             // often if that doesn't help.
             if (this._sensorMisses >= this._sensorRescanAt) {
                 this._sensorRescanAt *= 4;
-                this._sensors = findSensors();
-                this._applySensors();
-                this._syncVisibility();
-                this._syncRefreshTimer();
+                this._rescanSensors();
             }
             return;
         }
@@ -576,6 +682,19 @@ class TempoIndicator {
         this._showTemperatureValue(this._celsius);
         if (first)
             this._syncVisibility();
+    }
+
+    _rescanSensors() {
+        this._sensors = findSensors();
+        if (this._sensors.cpu !== null) {
+            // Found: should it go missing again, start looking soon again.
+            this._sensorSearchGap = SENSOR_SEARCH_FIRST;
+            this._sensorSearchAt = this._samples + SENSOR_SEARCH_FIRST;
+        }
+        this._applySensors();
+        this._syncVisibility();
+        this._syncFloats();                  // the system panel shows a fan only if there is one
+        this._syncRefreshTimer();
     }
 
     _showTemperatureValue(celsius) {
@@ -589,6 +708,7 @@ class TempoIndicator {
             this._tempClass = cls;
         }
         setLabel(this._rows.temperature.value, formatTemperature(celsius, this._fahrenheit, true));
+        this._stats?.setTemperature(celsius, this._fahrenheit);
     }
 
     // ---- menu --------------------------------------------------------------------------------
@@ -654,7 +774,6 @@ class TempoIndicator {
                     ? formatTemperature(milli / 1000, this._fahrenheit, true) : '–');
             });
         }
-        this._readFans();
         this._procs.scan();
         this._updateNowPlaying();
     }
@@ -669,9 +788,8 @@ class TempoIndicator {
         return _('Fan %d').replace('%d', String(fan.number));
     }
 
-    // Read every fan (only while the menu is open, on a worker thread), then list the ones that
-    // matter: see fansToShow().
-    _readFans() {
+    // Read every fan on a worker thread; `done(shown)` gets the ones that matter (fansToShow()).
+    _readFanSpeeds(done) {
         const fans = this._sensors.fans;
         if (fans.length === 0)
             return;
@@ -690,19 +808,32 @@ class TempoIndicator {
                 // A lone fan without a label of its own is just "Fan", not "Fan 1".
                 if (shown.length === 1 && readings.find(r => r.name === shown[0].name)?.numbered)
                     shown[0].name = _('Fan');
-                this._fanRows.forEach((row, i) => {
-                    const fan = shown[i];
-                    row.item.visible = fan !== undefined || (i === 0 && shown.length === 0);
-                    if (fan === undefined) {
-                        setLabel(row.name, _('Fan'));
-                        setLabel(row.value, '–');
-                        return;
-                    }
-                    setLabel(row.name, fan.name);
-                    setLabel(row.value, fan.rpm === 0 ? _('Stopped') : `${fan.rpm} RPM`);
-                });
+                done(shown);
             });
         }
+    }
+
+    // The fans that matter, for the menu (while it is open) and the system panel.
+    _refreshFans() {
+        this._readFanSpeeds(shown => {
+            this._stats?.setFan(shown.length > 0 ? shown[0].rpm : null);
+            if (this._button.menu.isOpen)
+                this._showFanRows(shown);
+        });
+    }
+
+    _showFanRows(shown) {
+        this._fanRows.forEach((row, i) => {
+            const fan = shown[i];
+            row.item.visible = fan !== undefined || (i === 0 && shown.length === 0);
+            if (fan === undefined) {
+                setLabel(row.name, _('Fan'));
+                setLabel(row.value, '–');
+                return;
+            }
+            setLabel(row.name, fan.name);
+            setLabel(row.value, fan.rpm === 0 ? _('Stopped') : `${fan.rpm} RPM`);
+        });
     }
 
     _showProcesses(list) {
@@ -860,14 +991,92 @@ class TempoIndicator {
         this._tipRows = [];
     }
 
+    // ---- floating panels ---------------------------------------------------------------------
+
+    _syncFloats() {
+        if (this._destroyed)
+            return;
+        const s = this._settings;
+        this._floatSwitches['float-stats'].setToggleState(this._floatStatsOn);
+        this._floatSwitches['float-viz'].setToggleState(this._vizOn);
+        const layer = s.get_string('float-layer');
+        const look = s.get_string('float-background');
+
+        if (this._floatStatsOn) {
+            const fresh = this._stats === null;
+            if (fresh)
+                this._stats = new StatsPanel(s);
+            // The fan appears by itself when the computer reports a fan speed.
+            const rebuilt = this._stats.setDesign(s.get_string('float-stats-design'), this._palette,
+                this._sensors.fans.length > 0);
+            this._stats.panel.setLook(look);
+            this._stats.panel.setLayer(layer);
+            this._stats.setPaused(this._screenOff);
+            if (fresh || rebuilt)
+                this._fillStats();
+        } else if (this._stats !== null) {
+            this._stats.destroy();
+            this._stats = null;
+        }
+
+        if (this._vizOn) {
+            if (this._vizPanel === null) {
+                this._viz = new VizWidget();
+                this._vizPanel = new FloatPanel({
+                    name: 'Tempo visualizer',
+                    content: this._viz.actor,
+                    settings: s,
+                    rectKey: 'float-viz-rect',
+                    defaultSize: [360, 120],
+                });
+            }
+            this._viz.setStyle(s.get_string('float-viz-design'));
+            this._viz.setPalette(this._palette ? this._palette.bars : null);
+            this._vizPanel.setLook(look);
+            this._vizPanel.setLayer(layer);
+        } else if (this._vizPanel !== null) {
+            this._vizPanel.destroy();
+            this._vizPanel = null;
+            this._viz = null;
+        }
+        this._syncRefreshTimer();
+    }
+
+    // Show the latest readings at once, so a new panel doesn't start empty.
+    _fillStats() {
+        if (this._cpu !== null)
+            this._stats.setCpu(this._cpu);
+        if (this._memory !== null)
+            this._stats.setMemory((this._memory.total - this._memory.available) / this._memory.total);
+        if (this._celsius !== null)
+            this._stats.setTemperature(this._celsius, this._fahrenheit);
+        if (this._network !== null)
+            this._stats.setNetwork(this._network.down, this._network.up);
+        if (this._sensors.fans.length > 0) {
+            this._refreshFans();
+            this._syncFanMode();
+        }
+    }
+
+    _removeFloats() {
+        this._stats?.destroy();
+        this._stats = null;
+        this._vizPanel?.destroy();
+        this._vizPanel = null;
+        this._viz = null;
+    }
+
     // ---- music visuals -----------------------------------------------------------------------
 
     _syncMusic() {
-        const wanted = this._settings.get_boolean('music-visuals');
+        // The recorder serves the top-bar music visuals and the visualizer panel alike.
+        // The top-bar music visuals give way to the visualizer panel while it is on.
+        this._musicOn = this._settings.get_boolean('music-visuals') && !this._vizOn;
+        const wanted = this._musicOn || this._vizOn;
         this._musicStyle = this._settings.get_string('music-style');
         const fps = clamp(this._settings.get_int('music-fps'), FPS_MIN, FPS_MAX);
         const available = AudioCapture.available();
-        this._musicSwitch.setToggleState(wanted);
+        this._musicSwitch.setToggleState(this._settings.get_boolean('music-visuals'));
         this._musicHint.visible = wanted && !available;
 
         if (!wanted || !available) {
@@ -881,8 +1090,10 @@ class TempoIndicator {
             this._showNowPlaying([]);
             return;
         }
-        if (fps !== this._fps) {
+        const bands = this._vizOn ? VIZ_BANDS : BAR_COUNT;
+        if (fps !== this._fps || bands !== this._bands) {
             this._fps = fps;
+            this._bands = bands;
             if (this._capture !== null) {
                 this._stopCapture();
                 this._startCapture();
@@ -892,6 +1103,8 @@ class TempoIndicator {
             this._captureFailures = 0;
             this._players = new PlayerWatch(playing => this._onPlaying(playing));
         }
+        // The visualizer panel may just have appeared, gone, or moved to another screen.
+        this._onFullscreenChanged();
     }
 
     _onPlaying(playing) {
@@ -909,25 +1122,75 @@ class TempoIndicator {
             this._updateNowPlaying();
     }
 
-    _topBarHidden() {
-        const monitor = Main.layoutManager.primaryMonitor;
+    // The screen an actor is on, from the place it was given. (That is known at once, unlike its
+    // position on the stage, which GNOME Shell only works out when it next lays the screen out.)
+    _monitorOf(actor) {
+        const x = actor.x + actor.width / 2, y = actor.y + actor.height / 2;
+        const layout = Main.layoutManager;
+        return layout.monitors.find(m => x >= m.x && x < m.x + m.width && y >= m.y && y < m.y + m.height) ??
+            layout.primaryMonitor;
+    }
+
+    _fullscreenOn(monitor) {
         return Boolean(monitor && monitor.inFullscreen);
     }
 
+    // A fullscreen window covers the music visuals: the top bar's on the main screen, the
+    // visualizer panel's on whichever screen it sits.
+    _musicHidden() {
+        return this._fullscreenOn(this._vizPanel !== null
+            ? this._monitorOf(this._vizPanel.actor)
+            : Main.layoutManager.primaryMonitor);
+    }
+
+    // A fullscreen window came or went, or a panel moved to another screen.
     _onFullscreenChanged() {
-        if (this._topBarHidden())
-            this._stopCapture();
-        else
+        if (this._destroyed)
+            return;
+        if (this._musicHidden()) {
+            if (this._capture !== null)
+                this._stopCapture();
+        } else {
             this._startCapture();
+        }
+        const reading = this._refreshId !== 0;
+        this._syncRefreshTimer();
+        if (!reading && this._refreshId !== 0)
+            this._catchUp();
+    }
+
+    // Screens off: nobody is looking, so nothing is read, listened to or animated until they
+    // are back on.
+    _onScreenPower(off) {
+        if (this._destroyed)
+            return;
+        this._screenOff = off;
+        this._stats?.setPaused(off);
+        if (off) {
+            if (this._capture !== null)
+                this._stopCapture();
+        } else {
+            this._startCapture();
+        }
+        this._syncRefreshTimer();
+        if (!off)
+            this._catchUp();
+    }
+
+    // After a pause: fresh numbers at once, and again shortly after (rates need two readings).
+    _catchUp() {
+        this._refresh();
+        this._setTimer('warmup', MENU_FOLLOWUP_MS, () => this._refresh());
     }
 
     _startCapture() {
-        if (this._destroyed || this._capture !== null || !this._playing || this._topBarHidden())
+        if (this._destroyed || this._capture !== null || this._players === null || !this._playing ||
+            this._screenOff || this._musicHidden())
             return;
         const capture = new AudioCapture({
-            bars: BAR_COUNT,
+            bars: this._bands,
             fps: this._fps,
-            onLevels: levels => this._onLevels(levels),
+            onLevels: (levels, changed) => this._onLevels(levels, changed),
             onExit: quick => this._onCaptureExit(quick),
         });
         if (capture.start())
@@ -973,12 +1236,26 @@ class TempoIndicator {
         this._bars.clear();
         if (this._strip !== null)
             this._strip.clear();
+        this._viz?.clear();
     }
 
-    _onLevels(levels) {
-        this._bars.setLevels(levels);
-        if (this._strip !== null)
-            this._strip.setLevels(levels);
+    _onLevels(levels, changed) {
+        if (!changed) {
+            // Nothing new to show. Only the visualizer's peak caps may still be falling.
+            if (this._viz !== null && this._viz.settling)
+                this._viz.settle();
+            return;
+        }
+        // Exactly one of the three is on screen, and the recorder works in its number of bands.
+        if (this._viz !== null) {
+            if (levels.length === VIZ_BANDS)
+                this._viz.setLevels(levels);
+        } else if (this._musicOn && levels.length === BAR_COUNT) {
+            if (this._strip !== null)
+                this._strip.setLevels(levels);
+            else
+                this._bars.setLevels(levels);
+        }
         let sound = false;
         for (let i = 0; i < levels.length; i++) {
             if (levels[i] > 0) {
@@ -1003,7 +1280,7 @@ class TempoIndicator {
 
     // Fade the small bars and the level line in or out, to match the sound and the chosen style.
     _syncMusicActors() {
-        const bars = this._soundVisible && this._musicStyle !== 'strip';
+        const bars = this._soundVisible && this._musicOn && this._musicStyle !== 'strip';
         if (bars !== this._barsShown) {
             this._barsShown = bars;
             const actor = this._bars.actor;
@@ -1033,7 +1310,7 @@ class TempoIndicator {
     // ---- the level line along the top bar ----------------------------------------------------
 
     _syncStrip() {
-        const wanted = this._settings.get_boolean('music-visuals') && this._musicStyle !== 'bars';
+        const wanted = this._musicOn && this._musicStyle !== 'bars';
         if (!wanted) {
             this._removeStrip();
             return;

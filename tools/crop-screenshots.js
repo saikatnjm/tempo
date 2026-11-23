@@ -39,6 +39,25 @@ if (geometry.tip) {
     const left = Math.min(tx, bx) - 14, right = Math.max(tx + tw, bx + bw) + 14;
     crop('tip.png', left, 0, right - left, ty + th + 14, 2, 'tip.png');
 }
+// The floating panels on the desktop, twice life size. Each picture was noted together with
+// where the panels were in it.
+const shots = geometry.shots ?? {};
+function cropPanels(shot, name, which) {
+    const rects = which.map(key => shots[shot]?.[key]).filter(Boolean);
+    if (rects.length === 0)
+        return;
+    const margin = 14;
+    const left = Math.min(...rects.map(r => r[0])) - margin, top = Math.min(...rects.map(r => r[1])) - margin;
+    const right = Math.max(...rects.map(r => r[0] + r[2])) + margin, bottom = Math.max(...rects.map(r => r[1] + r[3])) + margin;
+    crop(`${shot}.png`, Math.round(left), Math.round(top), Math.round(right - left), Math.round(bottom - top), 2, name);
+}
+cropPanels('float-rings', 'float-system-rings.png', ['stats']);
+cropPanels('float-bars', 'float-system-bars.png', ['stats']);
+cropPanels('float-viz-bars', 'float-viz-bars.png', ['viz']);
+cropPanels('float-viz-mirror', 'float-viz-mirror.png', ['viz']);
+cropPanels('float-viz-wave', 'float-viz-wave.png', ['viz']);
+cropPanels('float-both', 'float-both.png', ['stats', 'viz']);
+
 // The open menu with the bar above it, and the settings window.
 crop('menu.png', mx - 16, 0, mw + 32, my + mh + 16, 1, 'menu.png');
 if (geometry.prefs) {

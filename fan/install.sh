@@ -18,7 +18,7 @@ if [ "${1:-}" = remove ]; then
 fi
 
 echo "Fans this computer lets Linux control:"
-if "$here/tempo-fan" list | sed 's/^/  /' | tee /dev/stderr | grep -q "no controllable fans"; then
+if bash "$here/tempo-fan" list | sed 's/^/  /' | tee /dev/stderr | grep -q "no controllable fans"; then
     for d in /sys/class/hwmon/hwmon*; do
         [ "$(cat "$d/name" 2>/dev/null)" = thinkpad ] && \
             echo "ThinkPad: add 'options thinkpad_acpi fan_control=1' to /etc/modprobe.d/thinkpad_acpi.conf and reboot."
@@ -29,18 +29,36 @@ fi
 
 install -m 0755 "$here/tempo-fan" /usr/local/bin/tempo-fan
 install -m 0644 "$here/tempo-fan.service" /etc/systemd/system/tempo-fan.service
+
 # The mode file belongs to the desktop user, so Tempo can switch modes without a password.
-# (The service only ever reads its first word, and ignores anything but cool, max or auto.)
-owner=${SUDO_USER:-root}
-install -d -m 0755 -o "$owner" /var/lib/tempo-fan
-[ -f /var/lib/tempo-fan/mode ] || echo cool > /var/lib/tempo-fan/mode
-chown "$owner:" /var/lib/tempo-fan/mode
-chmod 0644 /var/lib/tempo-fan/mode
+# (The service only ever reads its first few characters, and ignores anything but cool, max or
+# auto.) Its folder stays root's: the user can change what the file says, but not swap the file
+# for something else, which a script running as root must never be tricked into following.
+# The user who asked: through sudo, or through pkexec (Tempo's Install button).
+owner=${SUDO_USER:-}
+[ -z "$owner" ] && [ -n "${PKEXEC_UID:-}" ] && owner=$(id -nu "$PKEXEC_UID" 2>/dev/null)
+owner=${owner:-root}
+dir=/var/lib/tempo-fan
+mkdir -p "$dir"
+chown -h root:root "$dir"
+chmod 0755 "$dir"
+# Keep the mode already chosen, if there is one worth keeping; then make the file anew.
+mode=cool
+if [ -f "$dir/mode" ] && [ ! -L "$dir/mode" ]; then
+    word=; read -r -n 8 word < "$dir/mode" || true
+    case $word in cool|max|auto) mode=$word ;; esac
+fi
+rm -f "$dir/mode"
+printf '%s\n' "$mode" > "$dir/mode"
+chown "$owner" "$dir/mode"
+chmod 0644 "$dir/mode"
+
 systemctl daemon-reload
-systemctl enable --now tempo-fan.service
+systemctl enable tempo-fan.service
+systemctl restart tempo-fan.service      # also when it was already running: this may be an update
 sleep 2
 journalctl -u tempo-fan -b --no-pager -o cat | tail -n 8
 echo
-echo "Installed, in Cool mode. Change the mode from Tempo's menu, or:"
+echo "Installed, in ${mode^} mode. Change the mode from Tempo's menu, or:"
 echo "  echo max > /var/lib/tempo-fan/mode      (cool, max or auto)"
 echo "To remove: sudo bash $here/install.sh remove"

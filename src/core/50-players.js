@@ -29,6 +29,7 @@ class PlayerWatch {
         this._cancellable = new Gio.Cancellable();
         this._debounceId = 0;
         this._generation = 0;
+        this._describing = 0;
 
         this._propertiesId = this._bus.signal_subscribe(
             null, 'org.freedesktop.DBus.Properties', 'PropertiesChanged', MPRIS_PATH, MPRIS_PLAYER,
@@ -57,11 +58,12 @@ class PlayerWatch {
             callback([]);
             return;
         }
-        const generation = this._generation;
+        // Only the newest question is answered: an older one may arrive late, with stale names.
+        const asked = ++this._describing;
         const list = names.map(bus => ({bus, app: '', desktopEntry: '', title: '', artist: ''}));
         let pending = names.length * 2;
         const done = () => {
-            if (--pending === 0 && generation === this._generation)
+            if (--pending === 0 && asked === this._describing && !this._cancellable.is_cancelled())
                 callback(list);
         };
         list.forEach(entry => {

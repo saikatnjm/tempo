@@ -32,7 +32,10 @@ if [ "${TEMPO_SMOKE_AUDIO:-1}" = 1 ] && command -v pulseaudio >/dev/null 2>&1 &&
     if [ -S "$XDG_RUNTIME_DIR/pulse/native" ]; then
         export TEMPO_PROBE_AUDIO=1
         if [ -n "${TEMPO_SMOKE_SOUND:-}" ]; then
-            (while paplay --device=tempo_test "$TEMPO_SMOKE_SOUND"; do :; done) >/dev/null 2>&1 &
+            # Played with a short latency, as browsers and media players do: the sound server then
+            # hands the recorder its sound in many small pieces (100 to 200 a second), which is
+            # what Tempo has to cope with on a real desktop.
+            (while paplay --latency-msec="${TEMPO_SMOKE_PLAY_LATENCY:-20}" --device=tempo_test "$TEMPO_SMOKE_SOUND"; do :; done) >/dev/null 2>&1 &
         fi
     fi
 fi
@@ -62,7 +65,7 @@ for option in --wayland --no-x11; do
     if gnome-shell --help-all 2>/dev/null | grep -q -- "$option "; then options="$options $option"; fi
 done
 # shellcheck disable=SC2086
-timeout "${TEMPO_SMOKE_TIMEOUT:-180}" gnome-shell $options > "$TEMPO_PROBE_OUT/shell.log" 2>&1
+timeout "${TEMPO_SMOKE_TIMEOUT:-240}" gnome-shell $options > "$TEMPO_PROBE_OUT/shell.log" 2>&1
 echo "gnome-shell exit status: $?" >> "$TEMPO_PROBE_OUT/shell.log"
 
 kill $PLAYER 2>/dev/null

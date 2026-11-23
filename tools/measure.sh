@@ -6,7 +6,8 @@
 #
 #   tools/measure.sh [seconds per reading] [rounds]      default: 30 seconds, 4 rounds
 #
-# For the music rows, have a media player playing for the whole run. Leave the mouse and
+# For the music rows, have a media player playing for the whole run. The floating panels are
+# switched on for their rows and put back as they were. Leave the mouse and
 # keyboard alone while it runs, and close other busy apps if you can: anything that animates on
 # screen adds noise to GNOME Shell's numbers. The summary uses medians to ride out that noise.
 set -eu
@@ -25,16 +26,18 @@ get() { gsettings --schemadir "$DIR/schemas" get $SCHEMA "$1"; }
 put() { gsettings --schemadir "$DIR/schemas" set $SCHEMA "$1" "$2"; }
 cpu_ticks() { awk '{print $14 + $15}' "/proc/$1/stat" 2>/dev/null || echo 0; }
 
-KEYS="show-cpu show-memory show-temperature show-network music-visuals music-style"
+KEYS="show-cpu show-memory show-temperature show-network music-visuals music-style float-stats float-viz"
 saved=""
 for key in $KEYS; do saved="$saved $key=$(get "$key")"; done
 restore() { for pair in $saved; do put "${pair%%=*}" "${pair#*=}"; done; }
 trap restore EXIT INT TERM
 
-state() { # state <readings on/off> <music on/off> <bars|strip|both>
+state() { # state <readings on/off> <music on/off> <bars|strip> <system panel on/off> <visualizer panel on/off>
     for key in show-cpu show-memory show-temperature show-network; do put "$key" "$1"; done
     put music-style "$3"
     put music-visuals "$2"
+    put float-stats "$4"
+    put float-viz "$5"
     sleep 4
 }
 
@@ -60,10 +63,15 @@ printf '%-7s %-26s %12s %12s %12s\n' round state "GNOME Shell" recorder "recorde
 results=$(mktemp)
 round=1
 while [ "$round" -le "$ROUNDS" ]; do
-    for spec in "off:false:false:bars" "readings:true:false:bars" "bars:true:true:bars" "strip:true:true:strip" "both:true:true:both"; do
-        name=${spec%%:*}; rest=${spec#*:}
-        readings=${rest%%:*}; rest=${rest#*:}
-        state "$readings" "${rest%%:*}" "${rest#*:}"
+    for spec in "off:false:false:bars:false:false" "readings:true:false:bars:false:false" \
+            "bars:true:true:bars:false:false" "line:true:true:strip:false:false" \
+            "system-panel:true:false:bars:true:false" "visualizer:true:true:bars:false:true"; do
+        old_ifs=$IFS; IFS=:
+        # shellcheck disable=SC2086
+        set -- $spec
+        IFS=$old_ifs
+        name=$1
+        state "$2" "$3" "$4" "$5" "$6"
         set -- $(reading)
         printf '%-7s %-26s %11s%% %11s%% %12s\n' "$round" "$name" "$1" "$2" "$3"
         echo "$round $name $1 $2 $3" >> "$results"
@@ -80,21 +88,24 @@ awk '
     }
     { shell[$2, $1] = $3; recorder[$2, $1] = $4; if ($5 > memory) memory = $5; if ($1 > rounds) rounds = $1 }
     END {
-        split("off readings bars strip both", order, " ")
+        split("off readings bars line system-panel visualizer", order, " ")
         printf "%-26s %12s %12s\n", "median", "GNOME Shell", "recorder"
-        for (i = 1; i <= 5; i++) {
+        for (i = 1; i <= 6; i++) {
             for (r = 1; r <= rounds; r++) { a[r] = shell[order[i], r]; b[r] = recorder[order[i], r] }
             printf "%-26s %11.2f%% %11.2f%%\n", order[i], median(a, rounds), median(b, rounds)
         }
         for (r = 1; r <= rounds; r++) {
             d1[r] = shell["readings", r] - shell["off", r]
             d2[r] = shell["bars", r] - shell["readings", r]
-            d3[r] = shell["strip", r] - shell["readings", r]
-            d4[r] = shell["both", r] - shell["readings", r]
+            d3[r] = shell["line", r] - shell["readings", r]
+            d4[r] = shell["system-panel", r] - shell["off", r]
+            d5[r] = shell["visualizer", r] - shell["readings", r]
             rec[r] = recorder["bars", r]
         }
         printf "\nReadings (rings, temperature, network) add %+.2f%% of one core.\n", median(d1, rounds)
         printf "The recorder uses %.2f%% and %.1f MB while music is shown, whatever the style.\n", median(rec, rounds), memory
-        printf "In GNOME Shell: small bars add %+.2f%%, the light strip %+.2f%%, both together %+.2f%%.\n", median(d2, rounds), median(d3, rounds), median(d4, rounds)
+        printf "In GNOME Shell: small bars add %+.2f%%, the level line %+.2f%%.\n", median(d2, rounds), median(d3, rounds)
+        printf "Floating panels: the system panel adds %+.2f%% (its fan turns only while the real one does),\n", median(d4, rounds)
+        printf "the visualizer panel %+.2f%%. A panel behind a window costs the same as one you can see.\n", median(d5, rounds)
     }' "$results"
 rm -f "$results"

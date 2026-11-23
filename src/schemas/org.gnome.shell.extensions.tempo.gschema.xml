@@ -10,6 +10,24 @@
     <value nick="bars" value="0"/>
     <value nick="strip" value="1"/>
   </enum>
+  <enum id="org.gnome.shell.extensions.tempo.StatsDesign">
+    <value nick="rings" value="0"/>
+    <value nick="bars" value="1"/>
+  </enum>
+  <enum id="org.gnome.shell.extensions.tempo.VizDesign">
+    <value nick="bars" value="0"/>
+    <value nick="mirror" value="1"/>
+    <value nick="wave" value="2"/>
+  </enum>
+  <enum id="org.gnome.shell.extensions.tempo.FloatLayer">
+    <value nick="desktop" value="0"/>
+    <value nick="top" value="1"/>
+  </enum>
+  <enum id="org.gnome.shell.extensions.tempo.FloatBackground">
+    <value nick="glass" value="0"/>
+    <value nick="solid" value="1"/>
+    <value nick="clear" value="2"/>
+  </enum>
   <enum id="org.gnome.shell.extensions.tempo.TemperatureUnit">
     <value nick="celsius" value="0"/>
     <value nick="fahrenheit" value="1"/>
@@ -51,6 +69,42 @@
       <default>8</default>
       <summary>Music updates per second</summary>
       <description>Each update makes GNOME Shell redraw part of the top bar, so higher values look smoother and use more processor time.</description>
+    </key>
+    <key name="float-stats" type="b">
+      <default>false</default>
+      <summary>Floating system panel</summary>
+      <description>Show processor, memory, temperature and network in a panel you can place anywhere. While it is on, the top bar shows no system info.</description>
+    </key>
+    <key name="float-stats-design" enum="org.gnome.shell.extensions.tempo.StatsDesign">
+      <default>'rings'</default>
+      <summary>System panel design</summary>
+    </key>
+    <key name="float-stats-rect" type="ai">
+      <default>[-1, -1, 0, 0]</default>
+      <summary>System panel position and size</summary>
+      <description>x, y, width, height in pixels. -1 places it in the bottom-right corner.</description>
+    </key>
+    <key name="float-viz" type="b">
+      <default>false</default>
+      <summary>Floating visualizer panel</summary>
+      <description>Show the music visuals in a panel you can place anywhere. While it is on, the top bar shows no music visuals.</description>
+    </key>
+    <key name="float-viz-design" enum="org.gnome.shell.extensions.tempo.VizDesign">
+      <default>'bars'</default>
+      <summary>Visualizer panel design</summary>
+    </key>
+    <key name="float-viz-rect" type="ai">
+      <default>[-1, -1, 0, 0]</default>
+      <summary>Visualizer panel position and size</summary>
+    </key>
+    <key name="float-layer" enum="org.gnome.shell.extensions.tempo.FloatLayer">
+      <default>'desktop'</default>
+      <summary>Where the floating panels sit</summary>
+      <description>"desktop": behind windows, like a widget. "top": above everything.</description>
+    </key>
+    <key name="float-background" enum="org.gnome.shell.extensions.tempo.FloatBackground">
+      <default>'glass'</default>
+      <summary>Floating panel background</summary>
     </key>
     <key name="refresh-interval" type="i">
       <range min="1" max="10"/>

@@ -1,7 +1,8 @@
-// ---- widgets: the ring gauge and the music bars ----------------------------------------------
+// ---- widgets: the ring gauge, the music bars and the level line ------------------------------
 //
-// Both are tiny St.DrawingArea actors sized by the stylesheet (so HiDPI scaling just works) and
-// redrawn only when the value they show actually changes.
+// All are tiny actors sized by the stylesheet (so HiDPI scaling just works). A ring is redrawn
+// only when the value it shows changes; the bars and the line are drawn once and then only
+// stretched by the graphics card.
 
 /**
  * Colour palettes. `bars` is a gradient across the music bars; `cpu` and `memory` colour the
@@ -14,6 +15,13 @@ const PALETTES = new Map([
     ['mono', null],
 ]);
 const DEFAULT_PALETTE = 'ember';
+
+/** Whether two colours ([r, g, b], null or undefined) are the same. */
+function sameColor(a, b) {
+    if (a === b)
+        return true;
+    return Boolean(a && b) && a[0] === b[0] && a[1] === b[1] && a[2] === b[2];
+}
 
 /** Set a label's text only if it changed, so nothing is laid out or painted for no reason. */
 function setLabel(label, text) {
@@ -29,21 +37,31 @@ function themeForeground(actor) {
 
 /** A small circular gauge that fills clockwise from the top. */
 class RingWidget {
-    constructor() {
+    /** @param {object} [options] - {styleClass, expand}: the floating panel uses bigger rings */
+    constructor({styleClass = 'tempo-ring', expand = false} = {}) {
         this._value = 0;
         this._percent = -1;
-        this._color = null;
+        this._color = undefined;
         this.actor = new St.DrawingArea({
-            style_class: 'tempo-ring',
-            y_align: Clutter.ActorAlign.CENTER,
+            style_class: styleClass,
+            y_align: expand ? Clutter.ActorAlign.FILL : Clutter.ActorAlign.CENTER,
+            x_expand: expand,
+            y_expand: expand,
         });
         this.actor.connect('repaint', area => this._draw(area));
     }
 
     /** @param {number[]|null} rgb - [r, g, b] 0..255, or null to use the text colour */
     setColor(rgb) {
-        this._color = rgb ? rgb.map(c => c / 255) : null;
+        if (sameColor(rgb, this._color))
+            return;
+        this._color = rgb;
         this.actor.queue_repaint();
+    }
+
+    /** Thinner stroke, for big rings. */
+    setThin(thin) {
+        this._thin = thin;
     }
 
     /** @param {number} value - 0..1 */
@@ -61,7 +79,7 @@ class RingWidget {
         const cr = area.get_context();
         const [width, height] = area.get_surface_size();
         const size = Math.min(width, height);
-        const line = Math.max(2, size * 0.15);
+        const line = Math.max(2, size * (this._thin ? 0.09 : 0.15));
         const radius = size / 2 - line / 2 - 0.5;
         const cx = width / 2, cy = height / 2;
         const fg = themeForeground(area);
@@ -72,7 +90,7 @@ class RingWidget {
         cr.stroke();
 
         if (this._value > 0.005) {
-            const color = this._color ?? fg;
+            const color = this._color ? this._color.map(c => c / 255) : fg;
             cr.setLineCap(1);                    // round ends
             cr.setSourceRGBA(color[0], color[1], color[2], 1);
             cr.arc(cx, cy, radius, -Math.PI / 2, -Math.PI / 2 + this._value * 2 * Math.PI);
@@ -82,63 +100,88 @@ class RingWidget {
     }
 }
 
-/** A row of rounded bars, vertically centred, one per frequency band. */
+// A bar at rest is a dot: as tall as it is wide (3px of 16px in the stylesheet).
+const BARS_RESTING = 3 / 16;
+
+/**
+ * A row of rounded bars, vertically centred, one per frequency band.
+ *
+ * Built like the level line, to cost next to nothing: each bar is a small picture of a pill that
+ * is drawn once, and after that only its height scale changes, which the graphics card does.
+ * Nothing is drawn or uploaded per frame, and a bar whose level did not change is not touched.
+ */
 class BarsWidget {
     constructor(count) {
         this._count = count;
         this._levels = new Uint8Array(count);
-        this._colors = null;
+        this._shown = new Uint8Array(count).fill(255);   // the level each bar shows; 255: none yet
+        this._stops = undefined;
         // Reactive only so that hovering can be noticed; clicks still fall through to the button.
-        this.actor = new St.DrawingArea({
+        // The stylesheet lays the bars out (their width, the gaps, the height), so HiDPI scaling
+        // just works and nothing here ever has to be positioned by hand.
+        this.actor = new St.BoxLayout({
             style_class: 'tempo-bars',
             y_align: Clutter.ActorAlign.CENTER,
             visible: false,
             reactive: true,
             track_hover: true,
         });
-        this.actor.connect('repaint', area => this._draw(area));
+        this._barActors = [];
+        for (let i = 0; i < count; i++) {
+            const bar = new St.DrawingArea({style_class: 'tempo-bar', y_expand: true});
+            bar.set_pivot_point(0.5, 0.5);
+            bar.scale_y = BARS_RESTING;
+            bar.connect('repaint', area => this._draw(area, i));
+            this.actor.add_child(bar);
+            this._barActors.push(bar);
+        }
+        this.actor._delegate = this;
     }
 
     /** @param {number[][]|null} stops - gradient stops, or null to use the text colour */
     setPalette(stops) {
-        const n = this._count;
-        this._colors = stops
-            ? Array.from({length: n}, (_unused, i) => gradientColor(stops, n > 1 ? i / (n - 1) : 0))
-            : null;
-        this.actor.queue_repaint();
+        if (stops === this._stops)
+            return;
+        this._stops = stops;
+        for (const bar of this._barActors)
+            bar.queue_repaint();
     }
 
     /** @param {Uint8Array} levels - one value per bar, 0..SPECTRUM_LEVELS */
     setLevels(levels) {
         this._levels.set(levels);
-        this.actor.queue_repaint();
+        this._apply();
     }
 
     clear() {
         this._levels.fill(0);
+        this._apply();
     }
 
-    _draw(area) {
+    _apply() {
+        for (let i = 0; i < this._count; i++) {
+            const level = this._levels[i];
+            if (level === this._shown[i])
+                continue;                        // unchanged: not even a transform update
+            this._shown[i] = level;
+            this._barActors[i].scale_y = Math.max(BARS_RESTING, level / SPECTRUM_LEVELS);
+        }
+    }
+
+    // One bar at full height, as a pill in its colour. Runs when the bar is created or resized,
+    // or the palette or theme changes; never per frame.
+    _draw(area, i) {
         const cr = area.get_context();
         const [width, height] = area.get_surface_size();
         const n = this._count;
-        const barWidth = Math.max(2, Math.floor(width / (n * 1.6)));
-        const gap = n > 1 ? (width - n * barWidth) / (n - 1) : 0;
-        const r = barWidth / 2;
-        const fg = this._colors === null ? themeForeground(area) : null;
-
-        for (let i = 0; i < n; i++) {
-            const barHeight = Math.max(barWidth, this._levels[i] / SPECTRUM_LEVELS * height);
-            const x = i * (barWidth + gap);
-            const y = (height - barHeight) / 2;
-            const c = fg ?? this._colors[i];
-            cr.setSourceRGBA(c[0], c[1], c[2], 0.95);
-            cr.newSubPath();
-            cr.arc(x + r, y + r, r, Math.PI, 0);
-            cr.arc(x + r, y + barHeight - r, r, 0, Math.PI);
-            cr.closePath();
-            cr.fill();
-        }
+        const c = this._stops ? gradientColor(this._stops, n > 1 ? i / (n - 1) : 0) : themeForeground(area);
+        const r = Math.min(width, height) / 2;
+        cr.setSourceRGBA(c[0], c[1], c[2], 0.95);
+        cr.newSubPath();
+        cr.arc(width / 2, r, r, Math.PI, 0);
+        cr.arc(width / 2, height - r, r, 0, Math.PI);
+        cr.closePath();
+        cr.fill();
         cr.$dispose();
     }
 }

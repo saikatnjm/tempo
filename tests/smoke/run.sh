@@ -63,5 +63,17 @@ elif grep -B2 -A12 -E "JS ERROR" "$OUT/shell.log" 2>/dev/null | grep -q "$UUID";
 else
     echo "ok    no Tempo errors in the shell log"
 fi
+
+# Two warnings GNOME Shell logs when widgets are handled carelessly: placing them by hand in the
+# middle of a layout pass, and asking a widget that is not on screen yet for its style. The stock
+# shell logs neither in this test, so every one of them comes from Tempo's widgets.
+careless="Can't update stage views|st_widget_get_theme_node called on the widget"
+if grep -qE "$careless" "$OUT/shell.log" 2>/dev/null; then
+    echo "FAIL  layout or style warnings in the shell log ($(grep -cE "$careless" "$OUT/shell.log") lines):"
+    grep -E "$careless" "$OUT/shell.log" | sed -E 's/^.*\*\*: [0-9:.]+: //; s/0x[0-9a-f]+//g' | sort | uniq -c | sort -rn | head -8
+    status=1
+else
+    echo "ok    no layout or style warnings in the shell log"
+fi
 echo "Screenshots and logs: $OUT"
 exit $status

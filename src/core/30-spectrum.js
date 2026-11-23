@@ -76,15 +76,34 @@ class Spectrum {
     }
 
     /**
-     * Feed a chunk of raw sound: signed 16-bit little-endian, mono, SPECTRUM_RATE Hz.
-     * Chunks may be any size, including odd byte counts.
-     * @param {Uint8Array} bytes
+     * Feed a chunk of raw sound and work out a frame whenever enough sound for one has arrived, so
+     * the frame rate is the one asked for however the sound is chunked.
+     * @param {Uint8Array} bytes - see feed()
      * @returns {boolean} true when `levels` changed and should be redrawn
      */
     push(bytes) {
+        const total = this.feed(bytes);
+        if (total === 0)
+            return false;
+        // Sound servers hand over sound in chunks of their own size, usually not one frame's
+        // worth. Keep the remainder, so the frame rate averages out to what was asked for.
+        this._fresh += total;
+        if (this._fresh < this._hop)
+            return false;
+        this._fresh %= this._hop;
+        return this.frame();
+    }
+
+    /**
+     * Take in a chunk of raw sound without working anything out: signed 16-bit little-endian,
+     * mono, SPECTRUM_RATE Hz. Chunks may be any size, including odd byte counts.
+     * @param {Uint8Array} bytes
+     * @returns {number} how many samples were taken in
+     */
+    feed(bytes) {
         const length = bytes.length;
         if (length === 0)
-            return false;
+            return 0;
         const n = SPECTRUM_SIZE;
         const samples = this._samples;
 
@@ -100,7 +119,7 @@ class Spectrum {
         if (((length - pos) & 1) === 1)
             this._carry = bytes[length - 1];
         if (total === 0)
-            return false;
+            return 0;
 
         // Keep only the newest n samples: slide the window, or skip ahead in a very large chunk.
         let skip = 0, write;
@@ -124,13 +143,18 @@ class Spectrum {
         for (; p < end; p += 2)
             samples[write++] = ((bytes[p] | (bytes[p + 1] << 8)) << 16 >> 16) / 32768;
 
-        // Sound servers hand over sound in chunks of their own size, usually not one frame's
-        // worth. Keep the remainder, so the frame rate averages out to what was asked for.
-        this._fresh += total;
         this._elapsed += total;
-        if (this._fresh < this._hop)
+        return total;
+    }
+
+    /**
+     * Work out the levels from the newest sound, for a caller that paces the frames itself
+     * (feed() what arrived, then frame() once). Does nothing if no sound came in since last time.
+     * @returns {boolean} true when `levels` changed and should be redrawn
+     */
+    frame() {
+        if (this._elapsed === 0)
             return false;
-        this._fresh %= this._hop;
         const seconds = Math.min(0.5, this._elapsed / SPECTRUM_RATE);
         this._elapsed = 0;
         return this._frame(seconds);

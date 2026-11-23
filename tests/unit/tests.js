@@ -208,6 +208,41 @@ for (const [fps, samplesPerChunk] of [[12, 1035], [12, 1328], [12, 1344], [12, 3
     }
 }
 
+{
+    // Paced by the caller, as the recorder does: feed() every piece the sound server sent, then
+    // one frame() per tick, however many pieces there were.
+    const paced = new Spectrum(10, 8), pushed = new Spectrum(10, 8);
+    const data = tone(440, 0.4, 8 * 4000);               // one second at 8 frames a second
+    for (let tick = 0; tick < 8; tick++) {
+        const chunk = data.subarray(tick * 4000, (tick + 1) * 4000);
+        for (let offset = 0; offset < chunk.length; offset += 322)
+            paced.feed(chunk.subarray(offset, Math.min(chunk.length, offset + 322)));
+        paced.frame();
+        pushed.push(chunk);
+    }
+    equal('paced: one frame per tick, however many pieces arrived', paced.frames, 8);
+    check('paced: the tone shows', Math.max(...paced.levels) > SPECTRUM_LEVELS * 0.8, Math.max(...paced.levels));
+    check('paced and pushed give the same levels', paced.levels.every((v, i) => v === pushed.levels[i]));
+    equal('paced: no new sound, no frame', paced.frame(), false);
+    equal('paced: the frame count stays', paced.frames, 8);
+    equal('paced: an empty piece is nothing', paced.feed(new Uint8Array(0)), 0);
+    equal('paced: feed reports the samples taken', paced.feed(new Uint8Array(322)), 161);
+}
+
+// ---- small helpers of the widgets ----
+{
+    const levels = Uint8Array.from({length: 64}, (_v, i) => i % 32);
+    equal('reduceLevels: same size is a copy', Array.from(reduceLevels(levels, new Uint8Array(64))), Array.from(levels));
+    equal('reduceLevels: loudest of each group', Array.from(reduceLevels(Uint8Array.from([1, 9, 3, 4, 7, 2]), new Uint8Array(3))), [9, 4, 7]);
+    equal('reduceLevels: uneven groups cover every band', Array.from(reduceLevels(Uint8Array.from([5, 1, 1, 1, 1, 1, 8]), new Uint8Array(3))), [5, 1, 8]);
+    check('sameColor: equal values', sameColor([1, 2, 3], [1, 2, 3]));
+    check('sameColor: different values', !sameColor([1, 2, 3], [1, 2, 4]));
+    check('sameColor: null and a colour', !sameColor(null, [1, 2, 3]) && !sameColor([1, 2, 3], null));
+    check('sameColor: null and null', sameColor(null, null));
+    check('sameColor: nothing set yet differs from null', !sameColor(null, undefined));
+    equal('screens: which power-save modes mean off', [-1, 0, 1, 2, 3, 4, NaN].map(screensAreOff), [false, false, true, true, true, false, false]);
+}
+
 for (const bars of [1, 4, 16, 32]) {
     const spectrum = new Spectrum(bars, 12);
     spectrum.push(tone(440, 0.3, 4000));

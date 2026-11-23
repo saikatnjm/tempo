@@ -2,14 +2,19 @@
 //
 // Runs the stock `parec` recorder (part of the PulseAudio utilities, and it talks to PipeWire
 // just the same) on the monitor of the default output, at a low sample rate. Its raw samples
-// arrive on a pipe and go straight into Spectrum. Nothing is ever recorded to disk or sent
-// anywhere, and the microphone is never opened.
+// arrive on a pipe and go into Spectrum. Nothing is ever recorded to disk or sent anywhere, and
+// the microphone is never opened.
+//
+// The pipe is read once per frame, not whenever sound arrives. Sound servers hand sound over in
+// pieces of their own choosing: PulseAudio was measured delivering 100 to 200 small pieces a
+// second while a browser plays, whatever latency is asked for. Reading each piece as it comes
+// would wake the whole desktop shell that often; instead the pieces wait in the pipe (which
+// holds two seconds of sound) and one read per frame takes them all.
 //
 // Measured on a Ryzen 5 3500U: parec uses about 1 % of one core and 6 MB of memory while it
 // runs. It only runs while a media player is playing (see PlayerWatch).
 
 const CAPTURE_PROGRAM = 'parec';
-const CAPTURE_CHUNK = 8192;         // bytes per read; one frame is at most 6400 bytes (5 fps)
 const CAPTURE_QUICK_EXIT_S = 3;     // exiting sooner than this counts as "could not start"
 
 class AudioCapture {
@@ -17,7 +22,8 @@ class AudioCapture {
      * @param {object} params
      * @param {number} params.bars
      * @param {number} params.fps
-     * @param {function(Uint8Array): void} params.onLevels - bar heights changed
+     * @param {function(Uint8Array, boolean): void} params.onLevels - called once per frame with
+     *     the bar heights and whether any of them changed since the last frame
      * @param {function(boolean): void} params.onExit - the recorder stopped by itself; the
      *     argument is true when that happened right after starting
      */
@@ -31,6 +37,10 @@ class AudioCapture {
         this._cancellable = null;
         this._spectrum = null;
         this._startedAt = 0;
+        this._timer = 0;
+        this._period = Math.round(1000 / fps);       // milliseconds between frames
+        // Bytes asked for per read: room for two frames (one frame is 2 * SPECTRUM_RATE / fps).
+        this._chunk = Math.max(4096, 2 ** Math.ceil(Math.log2(4 * SPECTRUM_RATE / fps)));
     }
 
     /** Whether the recorder program is installed. */
@@ -55,7 +65,8 @@ class AudioCapture {
             '--format=s16le',
             `--rate=${SPECTRUM_RATE}`,
             '--channels=1',
-            // Rounded up so one chunk is never a few samples short of one frame.
+            // One frame's worth per piece, for sound servers that honour it (PipeWire does): the
+            // recorder itself then wakes up less often.
             `--latency-msec=${Math.ceil(1000 / this._fps)}`,
             '--client-name=Tempo',
             '--stream-name=Music bars',
@@ -76,12 +87,15 @@ class AudioCapture {
         this._spectrum = new Spectrum(this._bars, this._fps);
         this._cancellable = new Gio.Cancellable();
         this._stdout = this._process.get_stdout_pipe();
-        this._read(this._stdout, this._cancellable);
+        this._read();
         return true;
     }
 
     /** Stop listening and end the recorder. Safe to call at any time. */
     stop() {
+        if (this._timer)
+            GLib.source_remove(this._timer);
+        this._timer = 0;
         if (this._cancellable !== null)
             this._cancellable.cancel();
         if (this._process !== null)
@@ -92,8 +106,11 @@ class AudioCapture {
         this._spectrum = null;
     }
 
-    _read(stream, cancellable) {
-        stream.read_bytes_async(CAPTURE_CHUNK, GLib.PRIORITY_DEFAULT, cancellable, (source, result) => {
+    // One frame: take everything that has arrived, work out the levels, and come back after one
+    // frame's time. While no sound arrives nothing runs at all: the read just waits.
+    _read() {
+        const cancellable = this._cancellable;
+        this._stdout.read_bytes_async(this._chunk, GLib.PRIORITY_DEFAULT, cancellable, (source, result) => {
             let bytes = null;
             try {
                 bytes = source.read_bytes_finish(result);
@@ -102,13 +119,30 @@ class AudioCapture {
             }
             if (cancellable.is_cancelled())
                 return;
-            if (bytes === null || bytes.get_size() === 0) {
+            const size = bytes === null ? 0 : bytes.get_size();
+            if (size === 0) {
                 this._exited();
                 return;
             }
-            if (this._spectrum.push(bytes.toArray()))
-                this._onLevels(this._spectrum.levels);
-            this._read(stream, cancellable);
+            this._spectrum.feed(bytes.toArray());
+            if (size === this._chunk) {
+                // A full read: more is waiting (the desktop was busy for a moment). Take the
+                // rest first, so the frame shows the newest sound.
+                this._read();
+                return;
+            }
+            // Every frame is reported, with whether the levels changed: something on screen may
+            // still be moving after the sound has settled (the visualizer's falling peak caps).
+            this._onLevels(this._spectrum.levels, this._spectrum.frame());
+            // A fresh one-shot timer each frame, rather than a repeating one: if the sound stops
+            // arriving, the read above waits and no timer keeps firing for nothing.
+            if (cancellable.is_cancelled())
+                return;                          // the listener stopped the capture
+            this._timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, this._period, () => {
+                this._timer = 0;
+                this._read();
+                return GLib.SOURCE_REMOVE;
+            });
         });
     }
 

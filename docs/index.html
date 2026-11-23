@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tempo: system rings and music bars for the GNOME top bar</title>
-<meta name="description" content="Tempo puts CPU and memory rings, temperature, network speed and music bars in the GNOME top bar. Small, quiet, and every part has its own switch.">
+<title>Tempo: system rings, music visuals and desktop panels for GNOME</title>
+<meta name="description" content="Tempo puts CPU and memory rings, temperature, network speed and music visuals in the GNOME top bar, with optional floating panels for the desktop. Small, quiet, and every part has its own switch.">
 <meta property="og:title" content="Tempo">
 <meta property="og:description" content="Your system and your music, at a glance. A tiny GNOME Shell extension.">
 <meta property="og:image" content="https://saikatnjm.github.io/tempo/assets/logo-512.png">
@@ -66,6 +66,11 @@ section { padding: 56px 0; border-top: 1px solid var(--line); }
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
 .card { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 20px 22px; }
 .card p { margin: 0; color: var(--muted); font-size: 16px; }
+h3.group { font-size: 15px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 30px 0 12px; }
+figure.wide { margin: 28px 0 0; }
+figure.wide img, .shots3 img { border-radius: 12px; border: 1px solid var(--line); display: block; }
+.shots3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 24px; }
+.shots3 figure { margin: 0; }
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px; margin: 0 0 26px; }
 .metric { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px 20px; }
 .metric b { display: block; font-size: 30px; line-height: 1.2;
@@ -98,7 +103,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <img class="logo" src="assets/logo.svg" alt="Tempo logo" width="92" height="92">
   <h1>Tempo</h1>
   <p class="tagline">Your system and your music, at a glance.</p>
-  <p class="sub">CPU and memory rings, temperature, network speed and music bars for the GNOME top bar. Small, quiet, and every part has its own switch.</p>
+  <p class="sub">CPU and memory rings, temperature, network speed and music visuals for the GNOME top bar, and optional floating panels for your desktop. Small, quiet, and every part has its own switch.</p>
   <div class="buttons">
     <a class="button primary" href="https://github.com/saikatnjm/tempo/releases/latest/download/tempo-gnome45-plus.shell-extension.zip">Download for GNOME 45+</a>
     <a class="button" href="install.html">Install guide</a>
@@ -121,17 +126,31 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
 <main>
 <section class="wrap" id="features">
   <h2>What you get</h2>
-  <p class="lead">A calm top bar that still tells you what your computer is doing.</p>
+  <p class="lead">Tempo lives in the top bar and can also sit on your desktop. Everything below can be switched on or off on its own; new parts start off.</p>
+  <h3 class="group">In the top bar</h3>
   <div class="grid">
     <div class="card"><h3>Two rings</h3><p>One fills up with processor use, the other with memory use. No numbers to read; a glance is enough.</p></div>
     <div class="card"><h3>Temperature</h3><p>The processor's temperature, turning amber above 75 °C and red above 85 °C. Celsius or Fahrenheit.</p></div>
-    <div class="card"><h3>Music visuals</h3><p>Ten small bars that move with the sound while a media player is playing, and fade away when it stops.</p></div>
-    <div class="card"><h3>Now playing</h3><p>Rest the pointer on the bars to see what is playing and in which app. The menu shows it too, and a click takes you there.</p></div>
-    <div class="card"><h3>Level line</h3><p>Or show the music as one thin line along the whole top bar that grows out from the middle with the loudness.</p></div>
     <div class="card"><h3>Network speed</h3><p>Download over upload in two small lines of fixed width, so the top bar never shuffles sideways as the numbers change.</p></div>
-    <div class="card"><h3>One menu</h3><p>Click for processor speed and load, memory and swap, graphics, disk and fan readings, and the four busiest apps.</p></div>
+    <div class="card"><h3>Music as small bars</h3><p>Ten bars next to the rings that move with the sound while a media player is playing, and fade away when it stops.</p></div>
+    <div class="card"><h3>Music as a level line</h3><p>Or one thin line along the whole top bar that grows out from the middle with the loudness.</p></div>
+    <div class="card"><h3>Now playing</h3><p>Rest the pointer on the bars to see what is playing and in which app. The menu shows it too, and a click takes you there.</p></div>
+    <div class="card"><h3>One menu</h3><p>Click for processor speed and load, memory and swap, graphics and disk temperature, every fan, network speed, and the four busiest apps.</p></div>
+  </div>
+  <h3 class="group">On the desktop</h3>
+  <div class="grid">
+    <div class="card"><h3>System panel</h3><p>Processor, memory, temperature and network speed in one floating panel, as rings or as bars. A little fan turns while your computer's real fan does, with its speed next to it.</p></div>
+    <div class="card"><h3>Visualizer panel</h3><p>The music, bigger: bars of lit segments in your palette's colours with falling peak caps and a reflection, the same bars mirrored, or a smooth wave. A wider panel shows more bars.</p></div>
+    <div class="card"><h3>Move and zoom</h3><p>Drag a panel anywhere on any screen. Drag its corner to zoom it: it keeps its shape and everything in it grows with it. Drag an edge to reshape it.</p></div>
+    <div class="card"><h3>Your look</h3><p>Behind your windows like a desktop widget, or on top of them. Glass, solid or clear background. A panel replaces its part of the top bar while it is on.</p></div>
+  </div>
+  <figure class="wide"><img src="assets/float-both.png" width="788" alt="The system panel with rings and a fan, and the visualizer panel with segmented bars, on the desktop" loading="lazy"></figure>
+  <p class="caption">The system panel (as rings) and the visualizer panel (as bars). More pictures <a href="#screenshots">below</a>.</p>
+  <h3 class="group">Everywhere</h3>
+  <div class="grid">
     <div class="card"><h3>Four palettes</h3><p>Ember, Aurora, Orchid, or Mono, which simply uses the top bar's own text colour.</p></div>
-    <div class="card"><h3>A switch for everything</h3><p>Each part turns on or off on its own, and a part that is off costs nothing. New parts start off.</p></div>
+    <div class="card"><h3>A switch for everything</h3><p>Each part turns on or off on its own, and a part that is off costs nothing.</p></div>
+    <div class="card"><h3>Optional fan control</h3><p>For computers that start their fans late: one button in the settings installs a tiny service, and the menu gets a Fan mode switch (Cool, Full speed, Automatic). <a href="install.html#fan">More</a>.</p></div>
   </div>
 </section>
 
@@ -139,11 +158,12 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <h2>Light by design</h2>
   <p class="lead">Tempo was built for a laptop that runs hot, so the rule is simple: do nothing unless something on screen needs to change. Measured on a 2019 Ryzen 5 3500U laptop with GNOME Shell 42; figures are percent of one of its eight processor threads.</p>
   <div class="metrics" id="metrics">
-    <div class="metric"><b>0</b><span>processes and timers when every part is off, when nothing is playing, or while a fullscreen window hides the top bar</span></div>
-    <div class="metric"><b>0 %</b><span>measurable cost for the rings, temperature and network speed</span></div>
-    <div class="metric"><b>1.4 %</b><span>for the level line at the default 8 updates a second, in a clean test (small bars: 2.0 %)</span></div>
+    <div class="metric"><b>0</b><span>processes and timers when every part is off, when nothing is playing, while the screens are off, or while a fullscreen window is in front</span></div>
+    <div class="metric"><b>0 %</b><span>measurable cost for the rings, temperature and network speed in the top bar (0.2 % in the floating system panel)</span></div>
+    <div class="metric"><b>1.4 %</b><span>for the level line at the default 8 updates a second, in a clean test (small bars: 2.1 %, visualizer panel: 2.7 %)</span></div>
+    <div class="metric"><b>10×</b><span>lighter listening than version 1.1: the sound is read once per frame, not 200 times a second</span></div>
     <div class="metric"><b>1 %</b><span>and 6 MB for the sound recorder, only while music is shown</span></div>
-    <div class="metric"><b>115 KB</b><span>installed. No compiled code, no background service</span></div>
+    <div class="metric"><b>250 KB</b><span>installed. No compiled code, and no background service unless you add fan control</span></div>
   </div>
   <div class="scroll">
   <table>
@@ -151,21 +171,26 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     <tbody>
       <tr><td>Rings, temperature and network shown</td><td>Nothing measurable</td></tr>
       <tr><td>Level line at 8 updates a second (the default rate)</td><td>1.4 %</td></tr>
-      <tr><td>Level line at 12 updates a second</td><td>2.0 %</td></tr>
-      <tr><td>Small bars at 8 updates a second</td><td>2.0 %</td></tr>
-      <tr><td>Small bars at 12 updates a second</td><td>2.8 %</td></tr>
-      <tr><td>Small bars at 20 updates a second</td><td>4.9 %</td></tr>
+      <tr><td>Level line at 12 updates a second</td><td>2.1 %</td></tr>
+      <tr><td>Small bars at 8 updates a second</td><td>2.1 %</td></tr>
+      <tr><td>Small bars at 12 updates a second</td><td>2.6 %</td></tr>
+      <tr><td>Small bars at 20 updates a second</td><td>4.2 %</td></tr>
+      <tr><td>Floating system panel</td><td>0.2 %</td></tr>
+      <tr><td>Its little fan, while the real fan turns</td><td>0.7 % more</td></tr>
+      <tr><td>Floating visualizer panel at 8 updates a second</td><td>2.7 %</td></tr>
     </tbody>
   </table>
   </div>
-  <p class="caption">On a busy real desktop expect about three times these figures: the same laptop in daily use, with two screens and a video playing, measured about 9 % for the small bars at 12 updates a second.</p>
+  <p class="caption">The test plays its music the way a browser does, so the sound arrives in about 200 small pieces a second, as on a real desktop. Measured the same way, version 1.1 needed 10.7 % for the small bars at 8 updates a second. A real desktop also has real screens to repaint, so expect somewhat more there; <code>tools/measure.sh</code> in the source measures yours.</p>
   <ul class="plain">
     <li><b>Nothing is polled for music.</b> Tempo waits for the session bus to say that a player started. The recorder stops a few seconds after it pauses, so the sound card can go back to sleep.</li>
+    <li><b>One look at the sound per frame.</b> Sound servers deliver sound in 100 to 200 small pieces a second. Tempo lets them wait in a pipe and reads them all at once, so the desktop wakes 8 times a second for music, not 200.</li>
+    <li><b>Drawn once, then only stretched.</b> The small bars, the level line and the visualizer's bars are each drawn a single time. After that the graphics card stretches or uncovers them.</li>
     <li><b>Redraw only on change.</b> A ring is repainted only when its percentage changes; a label only when its text changes.</li>
+    <li><b>Asleep when you can't see it.</b> While the screens are off Tempo reads nothing, listens to nothing and animates nothing. While a fullscreen window covers the music visuals, the recorder is stopped.</li>
     <li><b>Slow sensors never block your desktop.</b> Hardware sensors are read on a worker thread, and the process list in small slices between frames.</li>
     <li><b>Menu details are read only while the menu is open</b>, and players are asked what they are playing only while the pointer rests on the bars.</li>
-    <li><b>Nothing is listened to that you can't see.</b> While a fullscreen window hides the top bar, the recorder is stopped.</li>
-    <li><b>The one real cost is animation.</b> Moving with music means GNOME Shell repaints a piece of the top bar for every update. That is why the update rate is a setting with a modest default, and why music is off until you switch it on. The level line is the lightest choice: it is drawn once and afterwards only stretched by the graphics card.</li>
+    <li><b>The one real cost is animation.</b> Every update of a moving picture is a repaint of the screen by GNOME Shell. That is why the update rate is a setting with a modest default, why music is off until you switch it on, and why the little fan turns in five steps a second and no more. One thing Tempo cannot know: a floating panel behind a window still animates, so switch the visualizer panel off when you don't want it.</li>
   </ul>
 </section>
 
@@ -189,6 +214,13 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
       <figure style="margin-top: 20px"><img src="assets/settings.png" alt="Tempo's settings window" loading="lazy"></figure>
     </div>
   </div>
+  <div class="shots3">
+    <figure><img src="assets/float-system-rings.png" alt="The system panel as rings: processor, memory, temperature and the fan" loading="lazy"><p class="caption">System panel, as rings.</p></figure>
+    <figure><img src="assets/float-system-bars.png" alt="The system panel as bars" loading="lazy"><p class="caption">System panel, as bars.</p></figure>
+    <figure><img src="assets/float-viz-bars.png" alt="The visualizer panel as bars of lit segments with peak caps" loading="lazy"><p class="caption">Visualizer, as bars.</p></figure>
+    <figure><img src="assets/float-viz-mirror.png" alt="The visualizer panel, mirrored around its middle" loading="lazy"><p class="caption">Visualizer, mirrored.</p></figure>
+    <figure><img src="assets/float-viz-wave.png" alt="The visualizer panel as a smooth wave" loading="lazy"><p class="caption">Visualizer, as a wave.</p></figure>
+  </div>
 </section>
 
 <section class="wrap" id="works-on">
@@ -210,7 +242,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     </tbody>
   </table>
   </div>
-  <p class="caption">On every change to the code, GitHub loads Tempo in each tested GNOME Shell and exercises every feature: all settings, the menu, all palettes, music bars with real captured sound, switching the extension off and on twice, and the settings window.</p>
+  <p class="caption">On every change to the code, GitHub loads Tempo in each tested GNOME Shell and exercises every feature: all settings, the menu, all palettes, the music visuals with real captured sound, the floating panels (dragged and zoomed with the pointer, as you would), switching the extension off and on twice, and the settings window.</p>
 </section>
 
 <section class="wrap" id="install">
@@ -224,7 +256,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
 <pre><code>gnome-extensions install --force ~/Downloads/tempo-gnome45-plus.shell-extension.zip
 # log out and back in, then:
 gnome-extensions enable tempo@saikatnjm.github.io</code></pre>
-  <p class="lead">The <a href="install.html">install guide</a> has the steps for each distribution, updating, removing, and fixes for common problems. Earlier versions are on the <a href="https://github.com/saikatnjm/tempo/releases">releases page</a>.</p>
+  <p class="lead">The <a href="install.html">install guide</a> has the steps for each distribution, <a href="install.html#update">updating</a>, <a href="install.html#remove">removing</a>, and fixes for common problems. <a href="install.html#versions">Every earlier version</a> stays available there too.</p>
   <p class="lead">Or from source, without root access:</p>
 <pre><code>git clone https://github.com/saikatnjm/tempo.git
 cd tempo
@@ -236,7 +268,7 @@ make install</code></pre>
   <h2>Your sound stays yours</h2>
   <ul class="plain">
     <li><b>Speakers only.</b> Tempo reads the sound going to your speakers. It never opens the microphone.</li>
-    <li><b>Nothing is kept.</b> The sound becomes ten bar heights in memory and is thrown away. Nothing is saved, and Tempo never uses the network.</li>
+    <li><b>Nothing is kept.</b> The sound becomes a handful of bar heights in memory and is thrown away. Nothing is saved, and Tempo never uses the network.</li>
     <li><b>Only while music plays.</b> The recorder runs only while a media player reports that it is playing.</li>
     <li><b>Open source.</b> Every line is on GitHub under the GPL-3.0-or-later licence.</li>
   </ul>
@@ -248,7 +280,11 @@ make install</code></pre>
   <details><summary>The bars don't show up</summary><p>Check that "React to music" is on, that something is playing sound, and that the player supports the standard media controls. If it appears in GNOME's media controls in the notification list, it does.</p></details>
   <details><summary>The temperature isn't shown</summary><p>Your machine has no sensor Tempo recognises yet. AMD, Intel and most ARM boards work; please open an issue for anything else.</p></details>
   <details><summary>Can it show numbers next to the rings?</summary><p>The numbers are one click away in the menu. Keeping the top bar calm is the point.</p></details>
-  <details><summary>Why is there a small Tempo icon in my top bar?</summary><p>Every part is switched off. The icon keeps the menu reachable so you can switch things back on.</p></details>
+  <details><summary>Why is there a small Tempo icon in my top bar?</summary><p>Every part is switched off, or the floating panels have taken their place. The icon keeps the menu reachable.</p></details>
+  <details><summary>How do I get the floating panels?</summary><p>Click Tempo, open <b>Floating panels</b> and switch on the system panel, the visualizer panel, or both. Their designs, background and placement are in the settings.</p></details>
+  <details><summary>A floating panel can't be dragged</summary><p>A panel on the desktop sits behind everything else, so a click only reaches it where nothing is in front. If your desktop shows icons, or you use the older X11 session, the click never arrives: set <b>Place them</b> to <b>On top of windows</b> in the settings, move and size the panel, then switch back.</p></details>
+  <details><summary>The little fan doesn't turn</summary><p>It turns only while the real fan does; many laptops keep the fan off until they are warm. If the panel shows no fan at all, your computer doesn't report a fan speed to Linux.</p></details>
+  <details><summary>Does Tempo keep working while the screen is off?</summary><p>No, on purpose. While the screens are off it reads nothing, listens to nothing and animates nothing. On the lock screen GNOME switches extensions off altogether.</p></details>
 </section>
 </main>
 

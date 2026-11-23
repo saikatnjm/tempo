@@ -4,7 +4,7 @@
 /* exported init, fillPreferencesWindow */
 'use strict';
 
-const {Adw, Gio, Gtk} = imports.gi;
+const {Adw, Gio, GLib, Gtk} = imports.gi;
 const ExtensionUtils = imports.misc.extensionUtils;
 const Me = ExtensionUtils.getCurrentExtension();
 const _ = ExtensionUtils.gettext;

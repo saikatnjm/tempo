@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Tempo 1.0.0\n"
+"Project-Id-Version: Tempo 1.2.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-19 15:08+0600\n"
+"POT-Creation-Date: 2026-11-23 17:37+0600\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,91 +17,148 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: src/core/70-indicator.js:182 src/core/70-indicator.js:192
+#: src/core/60-widgets.js:289
+msgid "A media player"
+msgstr ""
+
+#: src/core/60-widgets.js:301
+msgid "Playing"
+msgstr ""
+
+#: src/core/65-float.js:829 src/core/70-indicator.js:322
+#: src/core/70-indicator.js:331
 msgid "Processor"
 msgstr ""
 
-#: src/core/70-indicator.js:183
-msgid "Usage"
-msgstr ""
-
-#: src/core/70-indicator.js:184
-msgid "Speed"
-msgstr ""
-
-#: src/core/70-indicator.js:185
-msgid "Load average"
-msgstr ""
-
-#: src/core/70-indicator.js:187
+#: src/core/65-float.js:829 src/core/70-indicator.js:326
 msgid "Memory"
 msgstr ""
 
-#: src/core/70-indicator.js:188
-msgid "In use"
-msgstr ""
-
-#: src/core/70-indicator.js:189
-msgid "Swap"
-msgstr ""
-
-#: src/core/70-indicator.js:191 src/prefs/prefs-core.js:73
+#: src/core/65-float.js:829 src/core/70-indicator.js:330
+#: src/prefs/prefs-core.js:151
 msgid "Temperature"
 msgstr ""
 
-#: src/core/70-indicator.js:193
-msgid "Graphics"
-msgstr ""
-
-#: src/core/70-indicator.js:194
-msgid "Disk"
-msgstr ""
-
-#: src/core/70-indicator.js:195
+#: src/core/65-float.js:877 src/core/65-float.js:928 src/core/65-float.js:937
+#: src/core/70-indicator.js:336 src/core/70-indicator.js:810
+#: src/core/70-indicator.js:830
 msgid "Fan"
 msgstr ""
 
-#: src/core/70-indicator.js:197
-msgid "Network"
+#: src/core/65-float.js:928
+msgid "Fan stopped"
 msgstr ""
 
-#: src/core/70-indicator.js:198
-msgid "Download"
-msgstr ""
-
-#: src/core/70-indicator.js:199
-msgid "Upload"
-msgstr ""
-
-#: src/core/70-indicator.js:201
-msgid "Busiest apps"
-msgstr ""
-
-#: src/core/70-indicator.js:207 src/prefs/prefs-core.js:79
-msgid "Music bars"
-msgstr ""
-
-#: src/core/70-indicator.js:212
-msgid "Music bars need pulseaudio-utils"
-msgstr ""
-
-#: src/core/70-indicator.js:218
-msgid "Open System Monitor"
-msgstr ""
-
-#: src/core/70-indicator.js:223
-msgid "Settings"
-msgstr ""
-
-#: src/core/70-indicator.js:447
-msgid "Off"
-msgstr ""
-
-#: src/core/70-indicator.js:481
+#: src/core/65-float.js:930 src/core/70-indicator.js:835
 msgid "Stopped"
 msgstr ""
 
-#: src/core/70-indicator.js:493
+#: src/core/70-indicator.js:323
+msgid "Usage"
+msgstr ""
+
+#: src/core/70-indicator.js:324
+msgid "Load average"
+msgstr ""
+
+#: src/core/70-indicator.js:327
+msgid "In use"
+msgstr ""
+
+#: src/core/70-indicator.js:328
+msgid "Swap"
+msgstr ""
+
+#: src/core/70-indicator.js:332
+msgid "Graphics"
+msgstr ""
+
+#: src/core/70-indicator.js:333
+msgid "Disk"
+msgstr ""
+
+#: src/core/70-indicator.js:339
+msgid "Network"
+msgstr ""
+
+#: src/core/70-indicator.js:340
+msgid "Speed"
+msgstr ""
+
+#: src/core/70-indicator.js:342
+msgid "Busiest apps"
+msgstr ""
+
+#: src/core/70-indicator.js:348
+msgid "Music visuals"
+msgstr ""
+
+#: src/core/70-indicator.js:355
+msgid "Music visuals need pulseaudio-utils"
+msgstr ""
+
+#: src/core/70-indicator.js:362 src/prefs/prefs-core.js:189
+msgid "Floating panels"
+msgstr ""
+
+#: src/core/70-indicator.js:365 src/prefs/prefs-core.js:193
+msgid "System panel"
+msgstr ""
+
+#: src/core/70-indicator.js:365 src/prefs/prefs-core.js:200
+msgid "Visualizer panel"
+msgstr ""
+
+#: src/core/70-indicator.js:376
+msgid "Open System Monitor"
+msgstr ""
+
+#: src/core/70-indicator.js:381
+msgid "Settings"
+msgstr ""
+
+#: src/core/70-indicator.js:384
+msgid "saikatnjm.github.io/tempo"
+msgstr ""
+
+#: src/core/70-indicator.js:402
+msgid "Cool"
+msgstr ""
+
+#: src/core/70-indicator.js:403 src/core/70-indicator.js:408
+msgid "Full speed"
+msgstr ""
+
+#: src/core/70-indicator.js:404
+msgid "Automatic"
+msgstr ""
+
+#: src/core/70-indicator.js:407
+msgid "Cool: rises from 60 °C, full at 85 °C"
+msgstr ""
+
+#: src/core/70-indicator.js:409
+msgid "Automatic: the computer decides"
+msgstr ""
+
+#: src/core/70-indicator.js:412 src/core/70-indicator.js:452
+msgid "Fan mode"
+msgstr ""
+
+#: src/core/70-indicator.js:760
+msgid "Off"
+msgstr ""
+
+#: src/core/70-indicator.js:787
+msgid "Graphics fan"
+msgstr ""
+
+#: src/core/70-indicator.js:788
+#, javascript-format
+msgid "Fan %d"
+msgstr ""
+
+#: src/core/70-indicator.js:847
 msgid "Measuring…"
 msgstr ""
 
@@ -109,130 +166,286 @@ msgstr ""
 msgid "Open"
 msgstr ""
 
-#: src/prefs/prefs-core.js:65
-msgid "Top bar"
-msgstr ""
-
-#: src/prefs/prefs-core.js:66
-msgid ""
-"Choose what is always visible. Everything stays one click away in the menu."
-msgstr ""
-
-#: src/prefs/prefs-core.js:69
-msgid "Processor ring"
-msgstr ""
-
-#: src/prefs/prefs-core.js:69
-msgid "Fills up as the processor gets busier"
-msgstr ""
-
-#: src/prefs/prefs-core.js:71
-msgid "Memory ring"
-msgstr ""
-
-#: src/prefs/prefs-core.js:71
-msgid "Fills up as memory is used"
-msgstr ""
-
-#: src/prefs/prefs-core.js:73
-msgid "Amber above 75 °C, red above 85 °C"
-msgstr ""
-
-#: src/prefs/prefs-core.js:75
-msgid "Network speed"
-msgstr ""
-
-#: src/prefs/prefs-core.js:75
-msgid "Download and upload"
+#: src/prefs/prefs-core.js:79
+msgid "Fan control"
 msgstr ""
 
 #: src/prefs/prefs-core.js:80
 msgid ""
-"Bars that move with the sound while a media player is playing. Nothing runs "
-"while nothing plays."
+"Optional, for computers that start their fans late: runs every fan Linux can "
+"control from its temperature, and adds a Fan mode switch to the menu. Needs "
+"your password once."
 msgstr ""
 
-#: src/prefs/prefs-core.js:83
-msgid "Show music bars"
-msgstr ""
-
-#: src/prefs/prefs-core.js:83
-msgid "Reads the speaker output only, never the microphone"
-msgstr ""
-
-#: src/prefs/prefs-core.js:85
-msgid "Smoothness"
-msgstr ""
-
-#: src/prefs/prefs-core.js:85
-msgid "Updates per second. Higher is smoother and uses more processor time"
-msgstr ""
-
-#: src/prefs/prefs-core.js:88
-msgid "Appearance"
+#: src/prefs/prefs-core.js:82
+msgid "Fan control service"
 msgstr ""
 
 #: src/prefs/prefs-core.js:90
-msgid "Colours"
-msgstr ""
-
-#: src/prefs/prefs-core.js:90
-msgid "For the rings and the music bars"
+msgid "Installed. Choose the mode from the menu: Fan mode"
 msgstr ""
 
 #: src/prefs/prefs-core.js:91
-msgid "Ember: amber to coral"
+msgid "Not installed"
 msgstr ""
 
 #: src/prefs/prefs-core.js:92
-msgid "Aurora: blue to violet"
+msgid "Remove"
 msgstr ""
 
-#: src/prefs/prefs-core.js:93
-msgid "Orchid: pink to violet"
+#: src/prefs/prefs-core.js:92
+msgid "Install"
 msgstr ""
 
-#: src/prefs/prefs-core.js:94
-msgid "Mono: same as the top bar text"
-msgstr ""
-
-#: src/prefs/prefs-core.js:97
-msgid "Temperature unit"
-msgstr ""
-
-#: src/prefs/prefs-core.js:98
-msgid "Celsius (°C)"
-msgstr ""
-
-#: src/prefs/prefs-core.js:99
-msgid "Fahrenheit (°F)"
-msgstr ""
-
-#: src/prefs/prefs-core.js:102
-msgid "Refresh every"
-msgstr ""
-
-#: src/prefs/prefs-core.js:102
-msgid "Seconds between system readings"
+#: src/prefs/prefs-core.js:95
+msgid "Needs pkexec (polkit) and the fan files that come with Tempo"
 msgstr ""
 
 #: src/prefs/prefs-core.js:105
+msgid "Removing…"
+msgstr ""
+
+#: src/prefs/prefs-core.js:105
+msgid "Installing…"
+msgstr ""
+
+#: src/prefs/prefs-core.js:124
+msgid "Cancelled"
+msgstr ""
+
+#: src/prefs/prefs-core.js:126
+msgid "That didn't work. Run fan/install.sh in a terminal to see why."
+msgstr ""
+
+#: src/prefs/prefs-core.js:128
+msgid "This computer has no fans Linux can control, so nothing was installed."
+msgstr ""
+
+#: src/prefs/prefs-core.js:130
+msgid "Fan control removed"
+msgstr ""
+
+#: src/prefs/prefs-core.js:130
+msgid "Fan control installed, in Cool mode"
+msgstr ""
+
+#: src/prefs/prefs-core.js:143
+msgid "Top bar"
+msgstr ""
+
+#: src/prefs/prefs-core.js:144
+msgid ""
+"Choose what is always visible. Everything stays one click away in the menu."
+msgstr ""
+
+#: src/prefs/prefs-core.js:147
+msgid "Processor ring"
+msgstr ""
+
+#: src/prefs/prefs-core.js:147
+msgid "Fills up as the processor gets busier"
+msgstr ""
+
+#: src/prefs/prefs-core.js:149
+msgid "Memory ring"
+msgstr ""
+
+#: src/prefs/prefs-core.js:149
+msgid "Fills up as memory is used"
+msgstr ""
+
+#: src/prefs/prefs-core.js:151
+msgid "Amber above 75 °C, red above 85 °C"
+msgstr ""
+
+#: src/prefs/prefs-core.js:153
+msgid "Network speed"
+msgstr ""
+
+#: src/prefs/prefs-core.js:153
+msgid "Download and upload"
+msgstr ""
+
+#: src/prefs/prefs-core.js:157
+msgid "Music"
+msgstr ""
+
+#: src/prefs/prefs-core.js:158
+msgid ""
+"Moves with the sound while a media player is playing. Nothing runs while "
+"nothing plays."
+msgstr ""
+
+#: src/prefs/prefs-core.js:161
+msgid "React to music"
+msgstr ""
+
+#: src/prefs/prefs-core.js:161
+msgid "Reads the speaker output only, never the microphone"
+msgstr ""
+
+#: src/prefs/prefs-core.js:163
+msgid "Show it as"
+msgstr ""
+
+#: src/prefs/prefs-core.js:163
+msgid "The level line runs along the whole top bar"
+msgstr ""
+
+#: src/prefs/prefs-core.js:164
+msgid "Small bars"
+msgstr ""
+
+#: src/prefs/prefs-core.js:165
+msgid "Level line"
+msgstr ""
+
+#: src/prefs/prefs-core.js:168
+msgid "Smoothness"
+msgstr ""
+
+#: src/prefs/prefs-core.js:168
+msgid "Updates per second. Higher is smoother and uses more processor time"
+msgstr ""
+
+#: src/prefs/prefs-core.js:171
+msgid "Appearance"
+msgstr ""
+
+#: src/prefs/prefs-core.js:173
+msgid "Colours"
+msgstr ""
+
+#: src/prefs/prefs-core.js:173
+msgid "For the rings and the music bars"
+msgstr ""
+
+#: src/prefs/prefs-core.js:174
+msgid "Ember: amber to coral"
+msgstr ""
+
+#: src/prefs/prefs-core.js:175
+msgid "Aurora: blue to violet"
+msgstr ""
+
+#: src/prefs/prefs-core.js:176
+msgid "Orchid: pink to violet"
+msgstr ""
+
+#: src/prefs/prefs-core.js:177
+msgid "Mono: same as the top bar text"
+msgstr ""
+
+#: src/prefs/prefs-core.js:180
+msgid "Temperature unit"
+msgstr ""
+
+#: src/prefs/prefs-core.js:181
+msgid "Celsius (°C)"
+msgstr ""
+
+#: src/prefs/prefs-core.js:182
+msgid "Fahrenheit (°F)"
+msgstr ""
+
+#: src/prefs/prefs-core.js:185
+msgid "Refresh every"
+msgstr ""
+
+#: src/prefs/prefs-core.js:185
+msgid "Seconds between system readings"
+msgstr ""
+
+#: src/prefs/prefs-core.js:190
+msgid ""
+"Place them anywhere on any screen: drag to move, drag the corner to zoom, "
+"drag the right or bottom edge to reshape. A floating panel replaces its part "
+"of the top bar while it is on."
+msgstr ""
+
+#: src/prefs/prefs-core.js:193
+msgid "Processor, memory, temperature, network and the fan"
+msgstr ""
+
+#: src/prefs/prefs-core.js:195
+msgid "System panel design"
+msgstr ""
+
+#: src/prefs/prefs-core.js:196
+msgid "Rings"
+msgstr ""
+
+#: src/prefs/prefs-core.js:197 src/prefs/prefs-core.js:203
+msgid "Bars"
+msgstr ""
+
+#: src/prefs/prefs-core.js:200
+msgid "The music visuals, bigger: more bars the wider you make it"
+msgstr ""
+
+#: src/prefs/prefs-core.js:202
+msgid "Visualizer design"
+msgstr ""
+
+#: src/prefs/prefs-core.js:204
+msgid "Mirror"
+msgstr ""
+
+#: src/prefs/prefs-core.js:205
+msgid "Wave"
+msgstr ""
+
+#: src/prefs/prefs-core.js:208
+msgid "Background"
+msgstr ""
+
+#: src/prefs/prefs-core.js:209
+msgid "Glass"
+msgstr ""
+
+#: src/prefs/prefs-core.js:210
+msgid "Solid"
+msgstr ""
+
+#: src/prefs/prefs-core.js:211
+msgid "Clear"
+msgstr ""
+
+#: src/prefs/prefs-core.js:214
+msgid "Place them"
+msgstr ""
+
+#: src/prefs/prefs-core.js:214
+msgid ""
+"If a panel on the desktop cannot be dragged (desktop icons or X11 take the "
+"click), move it while it is on top"
+msgstr ""
+
+#: src/prefs/prefs-core.js:215
+msgid "On the desktop, behind windows"
+msgstr ""
+
+#: src/prefs/prefs-core.js:216
+msgid "On top of windows"
+msgstr ""
+
+#: src/prefs/prefs-core.js:222
 msgid "About"
 msgstr ""
 
-#: src/prefs/prefs-core.js:107
+#: src/prefs/prefs-core.js:224
 #, javascript-format
 msgid "Version %s"
 msgstr ""
 
-#: src/prefs/prefs-core.js:109
+#: src/prefs/prefs-core.js:226
 msgid "Website and source code"
 msgstr ""
 
-#: src/prefs/prefs-core.js:110
+#: src/prefs/prefs-core.js:227
 msgid "Report a problem"
 msgstr ""
 
-#: src/prefs/prefs-core.js:110
+#: src/prefs/prefs-core.js:227
 msgid "Opens the issue tracker"
 msgstr ""

@@ -26,6 +26,9 @@ build_variant() {
     cp "$SRC/stylesheet.css" "$out/"
     cp "$SRC"/icons/*.svg "$out/icons/"
     cp "$SRC"/schemas/*.gschema.xml "$out/schemas/"
+    # The optional fan service travels with the extension, for the Install button in settings.
+    mkdir -p "$out/fan"
+    cp "$ROOT/fan/tempo-fan" "$ROOT/fan/tempo-fan.service" "$ROOT/fan/install.sh" "$out/fan/"
     glib-compile-schemas --strict "$out/schemas"
     sed -e "s|@SHELL_VERSIONS@|$2|" -e "s|@VERSION@|$VERSION|" "$SRC/metadata.json.in" > "$out/metadata.json"
     cp "$ROOT/LICENSE" "$out/" 2>/dev/null || true
