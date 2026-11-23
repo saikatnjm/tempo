@@ -64,6 +64,27 @@ class TempoProbe {
         return Main.extensionManager.lookup(TEMPO_UUID);
     }
 
+    // Wait for GNOME Shell's start-up to be over, then close the overview if it is showing.
+    async _leaveOverview() {
+        const layout = Main.layoutManager;
+        let waited = 0;
+        while (layout._startingUp && waited < 40) {
+            await probeSleep(500);
+            waited++;
+        }
+        await probeSleep(500);
+        const notes = {startingUpFor: waited / 2, startedInOverview: Main.overview.visible};
+        for (let tries = 0; tries < 5 && (Main.overview.visible || Main.overview.animationInProgress); tries++) {
+            Main.overview.hide();
+            await probeSleep(1500);
+        }
+        notes.overviewAfter = Main.overview.visible;
+        notes.windowGroupVisible = global.window_group.visible;
+        this._report.notes.overview = notes;
+        this._check('the desktop is showing, not the overview', !Main.overview.visible && global.window_group.visible,
+            JSON.stringify(notes));
+    }
+
     // Take a picture, and note where the floating panels are in it (the documentation pictures
     // are cut out of these).
     async _floatShot(name) {
@@ -296,12 +317,9 @@ class TempoProbe {
         if (this._button() === null)
             return;
         // Stock GNOME starts a session in the overview, where the desktop (and with it Tempo's
-        // desktop panels) is hidden. The tests are about the desktop: go there.
-        this._report.notes.startedInOverview = Main.overview.visible;
-        if (Main.overview.visible) {
-            Main.overview.hide();
-            await probeSleep(1500);
-        }
+        // desktop panels) is hidden. The tests are about the desktop: wait until GNOME Shell has
+        // finished starting (on a slow machine that takes a while), then go there.
+        await this._leaveOverview();
 
         const source = Gio.SettingsSchemaSource.new_from_directory(
             ext.dir.get_child('schemas').get_path(), Gio.SettingsSchemaSource.get_default(), false);
@@ -568,6 +586,10 @@ class TempoProbe {
             await probeSleep(4000);                       // one refresh: values arrive
             const stats = this._float('Tempo system panel');
             this._check('system panel: appears when switched on', stats !== null && stats.actor.visible);
+            this._check('system panel: is really on screen', stats?.actor.mapped === true,
+                `overview ${Main.overview.visible}, starting up ${Main.layoutManager._startingUp}, ` +
+                `window group visible ${global.window_group.visible} mapped ${global.window_group.mapped}, ` +
+                `background group visible ${Main.layoutManager._backgroundGroup.visible} mapped ${Main.layoutManager._backgroundGroup.mapped}`);
             this._check('system panel: sits on the desktop by default', stats?.onDesktop === true);
             this._check('system panel: placed where it was saved', stats?.actor.x === 100 && stats?.actor.y === 120 &&
                 stats?.actor.width === 330 && stats?.actor.height === 150,
@@ -600,7 +622,16 @@ class TempoProbe {
                     await press(false);
                     await probeSleep(300);
                 };
+                // A pointer that has just appeared may have woken the overview (it starts in the
+                // top-left corner): park it somewhere harmless and make sure the desktop shows.
+                await move(700, 500);
+                if (Main.overview.visible) {
+                    Main.overview.hide();
+                    await probeSleep(1500);
+                }
                 let a = this._float('Tempo system panel').actor;
+                this._check('mouse: the desktop panel is on screen for the pointer', a.mapped && !Main.overview.visible,
+                    `mapped ${a.mapped}, overview ${Main.overview.visible}`);
                 const [x, y, w, h] = [a.x, a.y, a.width, a.height];
                 await drag(x + w / 2, y + 20, x + w / 2 + 50, y + 20 + 30);
                 a = this._float('Tempo system panel').actor;

@@ -51,6 +51,9 @@ gsettings set org.gnome.shell enabled-extensions "['$UUID', '$PROBE']"
 gsettings set org.gnome.shell disable-user-extensions false
 gsettings set org.gnome.shell welcome-dialog-last-shown-version '99.0'
 gsettings set org.gnome.desktop.interface enable-animations false
+# The test's own pointer starts in the top-left corner; on stock GNOME that is the hot corner,
+# which opens the overview and hides the desktop the floating panels are tested on.
+gsettings set org.gnome.desktop.interface enable-hot-corners false
 if [ "${TEMPO_SMOKE_STYLE:-}" = docs ]; then
     # Plain dark surroundings for the pictures in the documentation.
     gsettings set org.gnome.desktop.interface color-scheme prefer-dark
