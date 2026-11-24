@@ -3,7 +3,7 @@
   "name": "Tempo",
   "description": "A super light system monitor for the top bar: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop panels when you want them. Every part can be switched on or off.",
   "shell-version": @SHELL_VERSIONS@,
-  "version": 3,
+  "version": 4,
   "version-name": "@VERSION@",
   "url": "https://github.com/saikatnjm/tempo",
   "settings-schema": "org.gnome.shell.extensions.tempo",

@@ -6,6 +6,8 @@ All notable changes to Tempo are listed here. The format follows
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-24
+
 ### Changed
 
 - Tempo now introduces itself as what most people use it for: a super light system monitor for
@@ -135,6 +137,7 @@ First release.
 - A settings window; every part of Tempo has its own switch.
 - Builds for GNOME Shell 42 to 44 and for GNOME Shell 45 and later, from one code base.
 
+[1.3.0]: https://github.com/saikatnjm/tempo/releases/tag/v1.3.0
 [1.2.0]: https://github.com/saikatnjm/tempo/releases/tag/v1.2.0
 [1.1.0]: https://github.com/saikatnjm/tempo/releases/tag/v1.1.0
 [1.0.0]: https://github.com/saikatnjm/tempo/releases/tag/v1.0.0

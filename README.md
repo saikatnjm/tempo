@@ -298,7 +298,8 @@ Every version stays available. To go back to one, install its zip exactly like a
 
 | Version | Released | What it brought | GNOME 45 and newer | GNOME 42 to 44 |
 |---|---|---|---|---|
-| **1.2.0** (newest) | 23 Nov 2026 | Floating panels, optional fan control, much lighter listening | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.2.0/tempo-1.2.0-gnome45-plus.shell-extension.zip) | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.2.0/tempo-1.2.0-gnome42-44.shell-extension.zip) |
+| **1.3.0** (newest) | 24 Nov 2026 | GNOME 51, every file read off the main thread, quiet shutdown | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.3.0/tempo-1.3.0-gnome45-plus.shell-extension.zip) | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.3.0/tempo-1.3.0-gnome42-44.shell-extension.zip) |
+| 1.2.0 | 23 Nov 2026 | Floating panels, optional fan control, much lighter listening | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.2.0/tempo-1.2.0-gnome45-plus.shell-extension.zip) | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.2.0/tempo-1.2.0-gnome42-44.shell-extension.zip) |
 | 1.1.0 | 22 Nov 2026 | Level line, every fan in the menu, GNOME 50 | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.1.0/tempo-1.1.0-gnome45-plus.shell-extension.zip) | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.1.0/tempo-1.1.0-gnome42-44.shell-extension.zip) |
 | 1.0.0 | 19 Nov 2026 | First release (does not run on GNOME 50) | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.0.0/tempo-1.0.0-gnome45%2B.shell-extension.zip) | [zip](https://github.com/saikatnjm/tempo/releases/download/v1.0.0/tempo-1.0.0-gnome42-44.shell-extension.zip) |
 
