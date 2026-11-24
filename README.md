@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://github.com/saikatnjm/tempo/actions/workflows/ci.yml"><img src="https://github.com/saikatnjm/tempo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/GNOME%20Shell-42%20to%2050-ff9f43" alt="GNOME Shell 42 to 50">
+  <img src="https://img.shields.io/badge/GNOME%20Shell-42%20to%2051-ff9f43" alt="GNOME Shell 42 to 51">
   <img src="https://img.shields.io/badge/licence-GPL--3.0--or--later-ff5e7e" alt="Licence: GPL-3.0-or-later">
 </p>
 
@@ -35,7 +35,7 @@ is [measured](#light-by-design)):
 - [desktop widgets for GNOME](https://saikatnjm.github.io/tempo/desktop-widgets.html): a floating system panel and visualizer
 - [fan speeds, and optional fan control](https://saikatnjm.github.io/tempo/fan-control.html) for computers that start their fans too late
 
-It works on Ubuntu, Fedora, Debian, Arch and every other distribution with GNOME 42 to 50.
+It works on Ubuntu, Fedora, Debian, Arch and every other distribution with GNOME 42 to 51.
 
 ## What you get
 
@@ -183,8 +183,9 @@ service unless you add the optional fan control.
 - **Asleep when you can't see it.** While the screens are off, Tempo reads nothing, listens to
   nothing and animates nothing. While a fullscreen window covers the music visuals, the
   recorder is stopped.
-- **Slow sensors never block your desktop.** Hardware sensors are read on a worker thread.
-  The process list is read in small slices between frames.
+- **Reading never blocks your desktop.** Every file Tempo reads, from the three small `/proc`
+  files to the hardware sensors, is read on a worker thread, and the process list a small
+  slice at a time.
 - **Menu details are read only while the menu is open**, and the players are asked what they
   are playing only while the pointer rests on the bars.
 - **A part that is switched off does not run.** With every part off, Tempo removes its timer.
@@ -206,6 +207,7 @@ on any processor architecture. It does not run on KDE Plasma, Xfce, Cinnamon or 
 | 48 | Debian 13, Fedora 42, Ubuntu 25.04 | Tested on every change |
 | 49 | Fedora 43, Ubuntu 25.10 | Tested on every change |
 | 50 | Ubuntu 26.04 LTS, Fedora 44 | Tested on every change |
+| 51 | Fedora 45, Ubuntu 26.10 | Tested on every change |
 <!-- COMPAT:END -->
 
 "Tested on every change" means that each time the code changes, GitHub loads the extension in
@@ -421,6 +423,7 @@ make test      # unit tests (plain gjs), and the fan service against fake fan ha
 make smoke     # every feature, in a hidden, throwaway GNOME Shell
 make bench     # measure the processor cost in that hidden shell
 make zip       # installable zips into dist/
+make ego       # the two zips for extensions.gnome.org into dist/ego/
 ```
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for how the code is organised and the ground rules,

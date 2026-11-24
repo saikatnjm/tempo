@@ -25,7 +25,7 @@ DOCS = ROOT / 'docs'
 SITE = 'https://saikatnjm.github.io/tempo/'
 REPO = 'https://github.com/saikatnjm/tempo'
 VERSION = (ROOT / 'VERSION').read_text().strip()
-UPDATED = '2026-11-23'
+UPDATED = '2026-11-24'
 DOWNLOAD_NEW = f'{REPO}/releases/latest/download/tempo-gnome45-plus.shell-extension.zip'
 DOWNLOAD_OLD = f'{REPO}/releases/latest/download/tempo-gnome42-44.shell-extension.zip'
 # Proves to Google Search Console that the site is the project's own. Not a secret: it is meant
@@ -84,7 +84,7 @@ PAGES = [
             ('How do I show CPU and RAM usage in the GNOME top bar?',
              'Install Tempo. Two rings appear at the right of the top bar: one fills with processor use, the other with memory use. Click them for the exact numbers.'),
             ('Does it work on Ubuntu, Fedora, Debian and Arch?',
-             'Yes. Tempo is a GNOME Shell extension, so it runs on any distribution with the GNOME desktop, versions 42 to 50: Ubuntu 22.04 to 26.04, Fedora, Debian 12 and 13, Arch, openSUSE and others. It does not run on KDE Plasma, Xfce or Cinnamon.'),
+             'Yes. Tempo is a GNOME Shell extension, so it runs on any distribution with the GNOME desktop, versions 42 to 51: Ubuntu 22.04 to 26.10, Fedora, Debian 12 and 13, Arch, openSUSE and others. It does not run on KDE Plasma, Xfce or Cinnamon.'),
             ('Will a system monitor slow my computer down?',
              'This one was measured so that it does not: the rings, temperature and network speed add no measurable processor load. One timer every 3 seconds reads three small files, and nothing is redrawn unless a value changed.'),
             ('Can I see which app is using the processor?',
@@ -129,7 +129,7 @@ PAGES = [
         ],
         'faq': [
             ('How do I show internet speed in the top bar on Ubuntu?',
-             'Install Tempo, open its Settings and switch on Network speed. Download and upload speed appear in the top bar as two small lines. It works the same on Fedora, Debian, Arch and any other distribution with GNOME 42 to 50.'),
+             'Install Tempo, open its Settings and switch on Network speed. Download and upload speed appear in the top bar as two small lines. It works the same on Fedora, Debian, Arch and any other distribution with GNOME 42 to 51.'),
             ('Is it bits or bytes?',
              'Bytes per second, the same unit your browser shows for a download. 1.2M means 1.2 mebibytes per second, which is about 10 megabits per second.'),
             ('Does it measure how fast my connection can go?',
@@ -187,7 +187,7 @@ PAGES = [
         ],
         'faq': [
             ('Is there a music visualizer for GNOME on Ubuntu or Fedora?',
-             'Yes. Tempo is a GNOME Shell extension with a music visualizer built in: small bars or a level line in the top bar, or a floating visualizer panel on the desktop. It works on GNOME 42 to 50.'),
+             'Yes. Tempo is a GNOME Shell extension with a music visualizer built in: small bars or a level line in the top bar, or a floating visualizer panel on the desktop. It works on GNOME 42 to 51.'),
             ('Does it work with Spotify, YouTube and VLC?',
              'Yes, with any player that supports the standard media controls. If the player shows up in GNOME\'s media controls in the notification list, Tempo follows it. That covers browsers, the Spotify app, VLC, Rhythmbox and most others.'),
             ('Does it work with PipeWire?',
@@ -240,7 +240,7 @@ PAGES = [
         ],
         'faq': [
             ('How do I see my CPU temperature on Ubuntu without the terminal?',
-             'Install Tempo. The processor temperature appears in the top bar at once, and stays there. The same works on Fedora, Debian, Arch and any other distribution with GNOME 42 to 50.'),
+             'Install Tempo. The processor temperature appears in the top bar at once, and stays there. The same works on Fedora, Debian, Arch and any other distribution with GNOME 42 to 51.'),
             ('Do I need lm-sensors?',
              'No. Tempo reads the temperature files the Linux kernel provides directly, so there is nothing else to install or configure.'),
             ('What temperature is too hot?',
@@ -286,7 +286,7 @@ PAGES = [
         'cost_note': 'The service reads one temperature every 5 seconds and writes a fan setting only when it should change. It starts no other programs while it runs.',
         'on': [
             '<b>Install Tempo</b> with the buttons above. The fan speeds are in its menu straight away.',
-            '<b>For fan control,</b> click Tempo, open <b>Settings</b>, scroll to <b>Fan control</b> and press <b>Install</b>. GNOME asks for your password once, because fans can only be driven with administrator rights.',
+            '<b>For fan control,</b> click Tempo, open <b>Settings</b>, scroll to <b>Fan control</b> and press <b>Install</b>. GNOME asks for your password once, because fans can only be driven with administrator rights. A copy installed through extensions.gnome.org has no Install button; the <a href="install.html#fan">install guide</a> has two commands that do the same.',
             '<b>Choose the mode</b> under <b>Fan mode</b> in Tempo\'s menu. The same Settings button removes fan control again.',
         ],
         'faq': [
@@ -371,7 +371,7 @@ def app_data(url):
         'description': APP_DESCRIPTION,
         'applicationCategory': 'UtilitiesApplication',
         'applicationSubCategory': 'System monitor',
-        'operatingSystem': 'Linux with the GNOME desktop (GNOME Shell 42 to 50)',
+        'operatingSystem': 'Linux with the GNOME desktop (GNOME Shell 42 to 51)',
         'softwareVersion': VERSION,
         'offers': {'@type': 'Offer', 'price': '0', 'priceCurrency': 'USD'},
         'isAccessibleForFree': True,
@@ -482,7 +482,7 @@ def page_html(page):
 </div>
 <ul class="facts">
   <li><b>Free</b> and open source</li>
-  <li><b>GNOME 42 to 50</b> on Ubuntu, Fedora, Debian, Arch and more</li>
+  <li><b>GNOME 42 to 51</b> on Ubuntu, Fedora, Debian, Arch and more</li>
   <li><b>250 KB</b>, nothing else installed</li>
 </ul>
 {first}

@@ -32,7 +32,7 @@
    "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them.",
    "applicationCategory": "UtilitiesApplication",
    "applicationSubCategory": "System monitor",
-   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 50)",
+   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 51)",
    "softwareVersion": "1.2.0",
    "offers": {
     "@type": "Offer",
@@ -77,7 +77,7 @@
      "name": "Which Linux distributions does it work on?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Any distribution with the GNOME desktop, versions 42 to 50: Ubuntu 22.04 to 26.04, Fedora, Debian 12 and 13, Arch, openSUSE, Pop!_OS 22.04, Zorin OS and others. It does not run on KDE Plasma, Xfce or Cinnamon."
+      "text": "Any distribution with the GNOME desktop, versions 42 to 51: Ubuntu 22.04 to 26.10, Fedora, Debian 12 and 13, Arch, openSUSE, Pop!_OS 22.04, Zorin OS and others. It does not run on KDE Plasma, Xfce or Cinnamon."
      }
     },
     {
@@ -289,7 +289,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <ul class="facts">
     <li><b>0 %</b> measurable processor use for the readings</li>
     <li><b>250 KB</b>, no background service</li>
-    <li><b>GNOME 42 to 50</b>: Ubuntu, Fedora, Debian, Arch</li>
+    <li><b>GNOME 42 to 51</b>: Ubuntu, Fedora, Debian, Arch</li>
     <li><b>Free</b> and open source</li>
   </ul>
 
@@ -374,7 +374,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
     <li><b>Drawn once, then only stretched.</b> The small bars, the level line and the visualizer's bars are each drawn a single time. After that the graphics card stretches or uncovers them.</li>
     <li><b>Redraw only on change.</b> A ring is repainted only when its percentage changes; a label only when its text changes.</li>
     <li><b>Asleep when you can't see it.</b> While the screens are off Tempo reads nothing, listens to nothing and animates nothing. While a fullscreen window covers the music visuals, the recorder is stopped.</li>
-    <li><b>Slow sensors never block your desktop.</b> Hardware sensors are read on a worker thread, and the process list in small slices between frames.</li>
+    <li><b>Reading never blocks your desktop.</b> Every file Tempo reads, from the three small <code>/proc</code> files to the hardware sensors, is read on a worker thread, and the process list a small slice at a time.</li>
     <li><b>Menu details are read only while the menu is open</b>, and players are asked what they are playing only while the pointer rests on the bars.</li>
     <li><b>The one real cost is animation.</b> Every update of a moving picture is a repaint of the screen by GNOME Shell. That is why the update rate is a setting with a modest default, why music is off until you switch it on, and why the little fan turns in five steps a second and no more. One thing Tempo cannot know: a floating panel behind a window still animates, so switch the visualizer panel off when you don't want it.</li>
   </ul>
@@ -425,6 +425,7 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
       <tr><td>48</td><td>Debian 13, Fedora 42, Ubuntu 25.04</td><td>Tested on every change</td></tr>
       <tr><td>49</td><td>Fedora 43, Ubuntu 25.10</td><td>Tested on every change</td></tr>
       <tr><td>50</td><td>Ubuntu 26.04 LTS, Fedora 44</td><td>Tested on every change</td></tr>
+      <tr><td>51</td><td>Fedora 45, Ubuntu 26.10</td><td>Tested on every change</td></tr>
     </tbody>
   </table>
   </div>
@@ -468,7 +469,7 @@ make install</code></pre>
   <h2>Questions</h2>
   <details><summary>What is Tempo?</summary><p>A GNOME Shell extension for Linux that works as a super light system monitor in the top bar: processor and memory rings, temperature, internet speed and fans. It can also show your music as a visualizer, and put floating panels on your desktop.</p></details>
   <details><summary>Does it slow my computer down or drain the battery?</summary><p>The system readings add no measurable processor load. The music visuals are the one part that costs something: 1.4 to 2.7 % of one processor core at the default rate while music plays, plus about 1 % for the sound recorder, and nothing while it doesn't. While the screens are off, nothing runs at all.</p></details>
-  <details><summary>Which Linux distributions does it work on?</summary><p>Any distribution with the GNOME desktop, versions 42 to 50: Ubuntu 22.04 to 26.04, Fedora, Debian 12 and 13, Arch, openSUSE, Pop!_OS 22.04, Zorin OS and others. It does not run on KDE Plasma, Xfce or Cinnamon.</p></details>
+  <details><summary>Which Linux distributions does it work on?</summary><p>Any distribution with the GNOME desktop, versions 42 to 51: Ubuntu 22.04 to 26.10, Fedora, Debian 12 and 13, Arch, openSUSE, Pop!_OS 22.04, Zorin OS and others. It does not run on KDE Plasma, Xfce or Cinnamon.</p></details>
   <details><summary>How is it different from other system monitor extensions?</summary><p>It shows less in the top bar on purpose (two rings instead of rows of numbers), it publishes what it costs and how that was measured, and it stops entirely when you can't see it. If you want many numbers in view at once, another extension may suit you better.</p></details>
   <details><summary>How do I uninstall Tempo?</summary><p>Run gnome-extensions uninstall tempo@saikatnjm.github.io in a terminal, or open the Extensions app, find Tempo and choose Remove. It disappears at once and nothing is left behind. If you installed the optional fan control, remove that first in Tempo's Settings, under Fan control.</p></details>
   <details><summary>Is it free?</summary><p>Yes. Tempo is free and open source under the GPL-3.0-or-later licence, with no accounts, no ads and no network access.</p></details>

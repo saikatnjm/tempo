@@ -114,7 +114,7 @@ picture(cr, 'bar-ember.png', 760, 54, 376, 12)
 picture(cr, 'float-both.png', 64, 334, 1072, 16)
 
 text(cr, 'saikatnjm.github.io/tempo', 64, 588, 22, Pango.Weight.SEMIBOLD, TEXT)
-text(cr, 'Free and open source  ·  Linux, GNOME 42 to 50', 400, 589, 21, Pango.Weight.NORMAL, MUTED)
+text(cr, 'Free and open source  ·  Linux, GNOME 42 to 51', 400, 589, 21, Pango.Weight.NORMAL, MUTED)
 
 surface.write_to_png(str(ASSETS / 'social-card.png'))
 print(f'docs/assets/social-card.png: {W} x {H}')

@@ -29,7 +29,7 @@
    "description": "A super light system monitor for the GNOME top bar on Linux: CPU and memory rings, temperature, internet speed and fans, with a music visualizer and desktop widgets when you want them.",
    "applicationCategory": "UtilitiesApplication",
    "applicationSubCategory": "System monitor",
-   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 50)",
+   "operatingSystem": "Linux with the GNOME desktop (GNOME Shell 42 to 51)",
    "softwareVersion": "1.2.0",
    "offers": {
     "@type": "Offer",
@@ -69,7 +69,7 @@
      "name": "How do I see my CPU temperature on Ubuntu without the terminal?",
      "acceptedAnswer": {
       "@type": "Answer",
-      "text": "Install Tempo. The processor temperature appears in the top bar at once, and stays there. The same works on Fedora, Debian, Arch and any other distribution with GNOME 42 to 50."
+      "text": "Install Tempo. The processor temperature appears in the top bar at once, and stays there. The same works on Fedora, Debian, Arch and any other distribution with GNOME 42 to 51."
      }
     },
     {
@@ -135,7 +135,7 @@
 </div>
 <ul class="facts">
   <li><b>Free</b> and open source</li>
-  <li><b>GNOME 42 to 50</b> on Ubuntu, Fedora, Debian, Arch and more</li>
+  <li><b>GNOME 42 to 51</b> on Ubuntu, Fedora, Debian, Arch and more</li>
   <li><b>250 KB</b>, nothing else installed</li>
 </ul>
 <figure><img src="assets/bar-ember.png" width="466" alt="Tempo in the top bar, showing 66 degrees next to the two rings"><figcaption>The temperature sits next to the rings, twice life size here.</figcaption></figure>
@@ -181,7 +181,7 @@
 
 <section>
   <h2>Questions</h2>
-  <details><summary>How do I see my CPU temperature on Ubuntu without the terminal?</summary><p>Install Tempo. The processor temperature appears in the top bar at once, and stays there. The same works on Fedora, Debian, Arch and any other distribution with GNOME 42 to 50.</p></details>
+  <details><summary>How do I see my CPU temperature on Ubuntu without the terminal?</summary><p>Install Tempo. The processor temperature appears in the top bar at once, and stays there. The same works on Fedora, Debian, Arch and any other distribution with GNOME 42 to 51.</p></details>
   <details><summary>Do I need lm-sensors?</summary><p>No. Tempo reads the temperature files the Linux kernel provides directly, so there is nothing else to install or configure.</p></details>
   <details><summary>What temperature is too hot?</summary><p>That depends on the processor; most slow themselves down somewhere between 90 and 105 °C. Tempo turns amber at 75 °C and red at 85 °C as a heads-up, not as a verdict.</p></details>
   <details><summary>The temperature is not shown. Why?</summary><p>Your computer has no temperature sensor Tempo recognises yet. Please open an issue on GitHub with the output of grep . /sys/class/hwmon/hwmon*/name and it can be added.</p></details>

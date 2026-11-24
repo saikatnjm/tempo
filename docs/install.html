@@ -136,12 +136,12 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <table>
     <thead><tr><th>Distribution</th><th>GNOME</th><th>File</th><th>For music visuals</th></tr></thead>
     <tbody>
-      <tr><td>Ubuntu 26.04 LTS, 25.10</td><td>50, 49</td><td><span class="tag new">45 and newer</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
+      <tr><td>Ubuntu 26.10, 26.04 LTS, 25.10</td><td>51, 50, 49</td><td><span class="tag new">45 and newer</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
       <tr><td>Ubuntu 24.04 LTS</td><td>46</td><td><span class="tag new">45 and newer</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
       <tr><td>Ubuntu 22.04 LTS</td><td>42</td><td><span class="tag old">42, 43 and 44</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
       <tr><td>Debian 13</td><td>48</td><td><span class="tag new">45 and newer</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
       <tr><td>Debian 12</td><td>43</td><td><span class="tag old">42, 43 and 44</span></td><td><code>sudo apt install pulseaudio-utils</code></td></tr>
-      <tr><td>Fedora 41 to 44 (Workstation)</td><td>47 to 50</td><td><span class="tag new">45 and newer</span></td><td><code>sudo dnf install pulseaudio-utils</code></td></tr>
+      <tr><td>Fedora 41 to 45 (Workstation)</td><td>47 to 51</td><td><span class="tag new">45 and newer</span></td><td><code>sudo dnf install pulseaudio-utils</code></td></tr>
       <tr><td>RHEL, AlmaLinux, Rocky Linux 10</td><td>47</td><td><span class="tag new">45 and newer</span></td><td><code>sudo dnf install pulseaudio-utils</code></td></tr>
       <tr><td>Arch Linux, Manjaro, EndeavourOS (GNOME)</td><td>newest</td><td><span class="tag new">45 and newer</span></td><td><code>sudo pacman -S libpulse</code></td></tr>
       <tr><td>openSUSE Tumbleweed, Leap 15.6 (GNOME)</td><td>newest, 45</td><td><span class="tag new">45 and newer</span></td><td><code>sudo zypper install pulseaudio-utils</code></td></tr>
@@ -224,7 +224,10 @@ footer { color: var(--muted); font-size: 15px; padding: 36px 0 60px; border-top:
   <h2>Optional: fan control</h2>
   <p class="lead">If your computer starts its fans late, the optional tempo-fan service runs every fan Linux can control from its temperature, and adds a <b>Fan mode</b> switch to Tempo's menu (Cool, Full speed, Automatic). Tempo works without it; most computers don't need it.</p>
   <p class="lead">To install it, open Tempo's <b>Settings</b>, scroll to <b>Fan control</b> and press <b>Install</b>. GNOME asks for your password once, because fans can only be driven with administrator rights. The same button removes it again.</p>
-  <p class="note">Or from the source code: <code>git clone https://github.com/saikatnjm/tempo.git</code> and <code>sudo bash tempo/fan/install.sh</code>. Either way it lists the fans it will control before starting and installs nothing if there are none. ThinkPads need <code>options thinkpad_acpi fan_control=1</code> in <code>/etc/modprobe.d/thinkpad_acpi.conf</code> first. It needs systemd, which every major distribution uses. <a href="https://github.com/saikatnjm/tempo/tree/main/fan">Details and safety</a>.</p>
+  <p class="lead">No <b>Install</b> button in your Settings? A copy of Tempo installed through extensions.gnome.org comes without it, because that website does not let an extension run an installer. Two commands in a terminal do the same:</p>
+<pre><code>git clone https://github.com/saikatnjm/tempo.git
+sudo bash tempo/fan/install.sh</code></pre>
+  <p class="note">To remove it again: <code>sudo bash tempo/fan/install.sh remove</code>. The button and the commands run the same installer: it lists the fans it will control before starting and installs nothing if there are none. ThinkPads need <code>options thinkpad_acpi fan_control=1</code> in <code>/etc/modprobe.d/thinkpad_acpi.conf</code> first. It needs systemd, which every major distribution uses. <a href="https://github.com/saikatnjm/tempo/tree/main/fan">Details and safety</a>.</p>
 </section>
 
 <section id="not-supported">
