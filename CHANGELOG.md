@@ -12,6 +12,37 @@ All notable changes to Tempo are listed here. The format follows
   the top bar. The website has a page for each thing it does (system monitor, CPU temperature,
   internet speed, music visualizer, desktop widgets, fans), and the extension's own description
   says the same. Nothing about how it works has changed.
+- Every file is now read on a worker thread: the three small `/proc` files and the process
+  list too, not only the hardware sensors. Nothing in the desktop shell waits for a file any
+  more, which is also what extensions.gnome.org asks of an extension. The readings are the
+  same, and measured the same way as before they still add nothing measurable.
+- Switching Tempo off is now done part by part, in a fixed order: first everything that could
+  still call back (signals, timers, files being read, the players, the recorder), then every
+  widget, each in a `destroy()` of its own that disconnects, stops and destroys what it made.
+  The flag that said "already switched off" is gone, and so are the eight `try`/`catch` blocks
+  that were only there to be on the safe side; the twelve that remain each stand around a call
+  that really can fail. The checker that extensions.gnome.org runs on every upload now reports
+  nothing for Tempo. Nothing you can see has changed.
+
+### Added
+
+- **A build for extensions.gnome.org** (`make ego`). It is the same extension, packed the way
+  that website's review asks. The one difference you can see: its settings have no Install
+  button for the optional fan control, because an extension published there may not run an
+  installer; they link to the install guide, where two commands do the same. Fan speeds and
+  the Fan mode switch work as before. The downloads on GitHub keep the button.
+- **GNOME 51** (Fedora 45, Ubuntu 26.10). Tempo needed no change to run there; this version
+  is the first that lists GNOME 51, and it is now tested there on every change like the
+  others. Version 1.2.0 and older do not list it, so GNOME 51 does not load them.
+
+### Fixed
+
+- GNOME 48 and later: logging out or shutting down while music was playing left lines from
+  Tempo in the system log ("... has been already disposed"), from one to a few dozen depending
+  on what was showing. GNOME Shell takes its top bar and everything on top apart there without
+  switching extensions off, then runs on for a moment, and Tempo's recorder was still feeding
+  parts that were gone. Tempo now stops listening, reading and counting the moment its button
+  is taken away. Nothing was ever wrong on screen.
 
 ## [1.2.0] - 2026-11-23
 

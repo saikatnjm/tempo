@@ -3,6 +3,10 @@
 // All are tiny actors sized by the stylesheet (so HiDPI scaling just works). A ring is redrawn
 // only when the value it shows changes; the bars and the line are drawn once and then only
 // stretched by the graphics card.
+//
+// Each widget owns its actors. Whoever creates a widget calls its destroy() when done with it,
+// before destroying whatever the actors were put into: destroy() disconnects, removes and
+// destroys everything the widget made, and nothing of it runs afterwards.
 
 /**
  * Colour palettes. `bars` is a gradient across the music bars; `cpu` and `memory` colour the
@@ -48,7 +52,13 @@ class RingWidget {
             x_expand: expand,
             y_expand: expand,
         });
-        this.actor.connect('repaint', area => this._draw(area));
+        this._repaintId = this.actor.connect('repaint', area => this._draw(area));
+    }
+
+    destroy() {
+        this.actor.disconnect(this._repaintId);
+        this.actor.destroy();
+        this.actor = null;
     }
 
     /** @param {number[]|null} rgb - [r, g, b] 0..255, or null to use the text colour */
@@ -138,6 +148,14 @@ class BarsWidget {
         this.actor._delegate = this;
     }
 
+    destroy() {
+        for (const bar of this._barActors)
+            bar.destroy();               // each takes its "repaint" handler with it
+        this._barActors = [];
+        this.actor.destroy();
+        this.actor = null;
+    }
+
     /** @param {number[][]|null} stops - gradient stops, or null to use the text colour */
     setPalette(stops) {
         if (stops === this._stops)
@@ -208,7 +226,13 @@ class StripWidget {
         this.actor = new St.DrawingArea({style_class: 'tempo-strip', reactive: false, opacity: 0});
         this.actor.set_pivot_point(0.5, 0.5);
         this.actor.scale_x = LINE_RESTING;
-        this.actor.connect('repaint', area => this._draw(area));
+        this._repaintId = this.actor.connect('repaint', area => this._draw(area));
+    }
+
+    destroy() {
+        this.actor.disconnect(this._repaintId);
+        this.actor.destroy();
+        this.actor = null;
     }
 
     /** @param {number[][]|null} stops - three gradient stops (0..255), or null for the text colour */
@@ -279,6 +303,17 @@ class PlayingRow {
         this.text.layout_manager.orientation = Clutter.Orientation.VERTICAL;
         this.text.add_child(this.title);
         this.text.add_child(this.subtitle);
+    }
+
+    destroy() {
+        this.icon.destroy();
+        this.icon = null;
+        this.title.destroy();
+        this.title = null;
+        this.subtitle.destroy();
+        this.subtitle = null;
+        this.text.destroy();
+        this.text = null;
     }
 
     /**

@@ -177,6 +177,63 @@ class TempoProbe {
         return rows;
     }
 
+    // The widgets of a running Tempo, by name (null where it has none right now), to be looked
+    // at again once it has been disabled.
+    _widgetsOf(tempo) {
+        return {
+            'music bars': tempo._bars,
+            'processor ring': tempo._cpuRing,
+            'memory ring': tempo._memoryRing,
+            'level line': tempo._strip,
+            'system panel': tempo._stats,
+            'system panel frame': tempo._stats?.panel ?? null,
+            'system panel fan': tempo._stats?._fan ?? null,
+            'visualizer': tempo._viz,
+            'visualizer frame': tempo._vizPanel,
+        };
+    }
+
+    // What of a Tempo could still call back into it, as a list of names: empty when it has
+    // stopped (no timer, nothing being read, no recorder, nobody listened to).
+    _stillRunning(tempo) {
+        const running = [];
+        if (tempo._refreshId !== 0)
+            running.push('refresh timer');
+        for (const name of tempo._timers.keys())
+            running.push(`timer "${name}"`);
+        if (!tempo._cancellable.is_cancelled())
+            running.push('reads not cancelled');
+        for (const name of ['_capture', '_players', '_mixer']) {
+            if (tempo[name] !== null)
+                running.push(name);
+        }
+        return running;
+    }
+
+    // What a Tempo that has been disabled still holds on to, as a list of names: empty when it
+    // left nothing behind. `widgets` is what _widgetsOf() gave while it was running.
+    _leftBehind(tempo, widgets) {
+        const left = this._stillRunning(tempo);
+        for (const name of ['_button', '_bars', '_cpuRing', '_memoryRing', '_strip', '_tip', '_stats', '_vizPanel',
+            '_viz']) {
+            if (tempo[name] !== null)
+                left.push(name);
+        }
+        for (const [name, widget] of Object.entries(widgets)) {
+            if (widget === null)
+                continue;
+            for (const field of ['actor', 'content', 'panel', '_grip']) {
+                if (widget[field] !== undefined && widget[field] !== null)
+                    left.push(`${name}: ${field}`);
+            }
+            for (const field of ['_timer', '_layoutId']) {
+                if (widget[field])
+                    left.push(`${name}: ${field}`);
+            }
+        }
+        return left;
+    }
+
     // Benchmark mode (tools/bench.sh): instead of checking features, measure how much processor
     // time this GNOME Shell uses in each state. Nothing else runs in the test session, so the
     // differences between the states are Tempo's own cost.
@@ -608,7 +665,10 @@ class TempoProbe {
             await this._floatShot('float-rings');
             {
                 // Real pointer input: move the panel by dragging its body, resize it by its corner.
-                const seat = Clutter.get_default_backend().get_default_seat();
+                // GNOME 51 removed Clutter.get_default_backend(); there the backend comes from the
+                // stage's context. Where the function still exists (GNOME 42 to 50) it is used.
+                const backend = Clutter.get_default_backend?.() ?? global.stage.context.get_backend();
+                const seat = backend.get_default_seat();
                 const mouse = seat.create_virtual_device(Clutter.InputDeviceType.POINTER_DEVICE);
                 const now = () => GLib.get_monotonic_time();
                 const move = async (x, y) => { mouse.notify_absolute_motion(now(), x, y); await probeSleep(60); };
@@ -853,6 +913,8 @@ class TempoProbe {
 
         // Disable and enable twice: nothing may be left behind, nothing may break.
         for (let round = 1; round <= 2; round++) {
+            const old = this._button()._tempoIndicator;
+            const widgets = this._widgetsOf(old);
             Main.extensionManager.disableExtension(TEMPO_UUID);
             await probeSleep(800);
             this._check(`round ${round}: button is gone after disabling`, this._button() === null);
@@ -860,6 +922,9 @@ class TempoProbe {
                 this._chrome('tempo-strip') === null && this._chrome('tempo-tip') === null);
             this._check(`round ${round}: floating panels are gone after disabling`,
                 this._float('Tempo system panel') === null && this._float('Tempo visualizer') === null);
+            const left = this._leftBehind(old, widgets);
+            this._check(`round ${round}: it kept no timer, recorder or widget`,
+                widgets['system panel'] !== null && left.length === 0, left.join(', '));
             Main.extensionManager.enableExtension(TEMPO_UUID);
             await probeSleep(1500);
             const again = this._tempo();
@@ -887,6 +952,125 @@ class TempoProbe {
         await probeSleep(1500);
         this._check('enabled again after that', this._tempo()?.state === STATE_ACTIVE && this._button() !== null);
 
+        // Disabling with both floating panels showing: the system panel's gauges and fan and
+        // the visualizer are taken apart with the rest, the visualizer with a layout still
+        // waiting to be done.
+        settings.set_boolean('float-stats', true);
+        settings.set_boolean('float-viz', true);
+        await probeSleep(1500);
+        {
+            const old = this._button()._tempoIndicator;
+            const widgets = this._widgetsOf(old);
+            const both = widgets['system panel'] !== null && widgets.visualizer !== null;
+            if (both)
+                widgets.visualizer._queueLayout();
+            Main.extensionManager.disableExtension(TEMPO_UUID);
+            // Up to GNOME 50 Tempo is switched off before that call returns. GNOME 51 does it a
+            // moment later (it first waits for a lock of its own), so wait for the button to go
+            // before looking at what is left.
+            for (let i = 0; i < 100 && this._button() !== null; i++)
+                await probeSleep(10);
+            const left = this._leftBehind(old, widgets);
+            await probeSleep(800);
+            this._check('disabled with both panels showing: both are gone', both &&
+                this._float('Tempo system panel') === null && this._float('Tempo visualizer') === null);
+            this._check('disabled with both panels showing: it kept no timer, recorder or widget',
+                both && left.length === 0, left.join(', '));
+            Main.extensionManager.enableExtension(TEMPO_UUID);
+            await probeSleep(1500);
+            this._check('enabled again after that, with both panels', this._tempo()?.state === STATE_ACTIVE &&
+                this._float('Tempo system panel') !== null && this._float('Tempo visualizer') !== null);
+        }
+        settings.set_boolean('float-stats', false);
+        settings.set_boolean('float-viz', false);
+        await probeSleep(600);
+        this._check('panels switched off: both are gone again',
+            this._float('Tempo system panel') === null && this._float('Tempo visualizer') === null);
+
+        // GNOME Shell does not switch extensions off when it shuts down: it destroys its own
+        // interface, Tempo's button with it, and from GNOME 48 on it runs on for a moment after
+        // that. The same by hand here, with music playing and the system panel on the desktop:
+        // Tempo has to stop by itself at once (a recorder left running would move bars that no
+        // longer exist, which the log shows), and switching it off afterwards still has to take
+        // away what floats. Once with the menu closed and the pointer resting on the bars (the
+        // hover tip is up), once with the menu open (GNOME Shell closes and destroys it first).
+        settings.set_boolean('float-stats', true);
+        await probeSleep(1500);
+        this._report.notes.destroyedByHand = {};
+        for (const menuOpen of [false, true]) {
+            const how = menuOpen ? 'the menu open' : 'the menu closed';
+            const old = this._button()._tempoIndicator;
+            for (let i = 0; i < 30 && this._audio && old._capture === null; i++)
+                await probeSleep(100);
+            if (menuOpen) {
+                this._button().menu.open();
+                await probeSleep(1500);
+            } else if (this._audio) {
+                this._button().get_first_child().get_children()
+                    .find(c => c.has_style_class_name('tempo-bars')).set_hover(true);
+                await probeSleep(1200);
+            }
+            this._report.notes.destroyedByHand[how] = {
+                recorder: old._capture !== null,
+                tip: this._chrome('tempo-tip')?.visible === true,
+                menu: this._button().menu.isOpen,
+                before: this._stillRunning(old),
+            };
+            const listening = old._capture !== null;
+            this._button().destroy();
+            const running = this._stillRunning(old);
+            this._check(`button destroyed by GNOME Shell, ${how}: Tempo stops by itself`,
+                (listening || !this._audio) && running.length === 0, running.join(', '));
+            await probeSleep(600);                        // time for several frames of music
+            this._check(`button destroyed by GNOME Shell, ${how}: the system panel is left as it is`,
+                this._float('Tempo system panel') !== null);
+            Main.extensionManager.disableExtension(TEMPO_UUID);
+            await probeSleep(800);
+            const ext = this._tempo();
+            this._check(`switched off after that (${how}): no error, and nothing is left on screen`,
+                ext?.state !== STATE_ACTIVE && !ext?.error && this._float('Tempo system panel') === null &&
+                this._chrome('tempo-tip') === null,
+                `state ${ext?.state}, error: ${ext?.error ?? ''}`);
+            Main.extensionManager.enableExtension(TEMPO_UUID);
+            await probeSleep(1500);
+            this._check(`enabled again after that (${how}), with a new button`,
+                this._tempo()?.state === STATE_ACTIVE && this._button() !== null);
+        }
+        settings.set_boolean('float-stats', false);
+        await probeSleep(600);
+
+        // A panel that sits on top goes the same way when GNOME Shell shuts down, with what it
+        // shows, and nobody calls a destroy() of Tempo's then. The two parts that have something
+        // of their own running must stop it by themselves when their widget is destroyed: the
+        // fan (it turns on a timer) and the visualizer (a layout may be waiting to be done).
+        // Tried on a fan and a visualizer made for this test and destroyed the way the shell
+        // does it.
+        settings.set_boolean('float-stats', true);
+        settings.set_boolean('float-viz', true);
+        await probeSleep(1500);
+        {
+            const tempo = this._button()._tempoIndicator;
+            // The system panel shows a fan only where the computer reports one: ask for one.
+            tempo._stats.setDesign(tempo._stats._design, tempo._palette, true);
+            const fan = new tempo._stats._fan.constructor('tempo-float-ring');
+            Main.uiGroup.add_child(fan.actor);
+            fan.setRpm(2500);
+            const turning = fan._timer !== 0;
+            fan.actor.destroy();
+            this._check('a fan destroyed by GNOME Shell stops turning', turning && fan._timer === 0,
+                `turning before: ${turning}, timer after: ${fan._timer}`);
+            const viz = new tempo._viz.constructor();
+            Main.uiGroup.add_child(viz.actor);
+            viz._queueLayout();
+            const waiting = viz._layoutId !== 0;
+            viz.actor.destroy();
+            this._check('a visualizer destroyed by GNOME Shell drops the layout that was waiting',
+                waiting && viz._layoutId === 0, `waiting before: ${waiting}, layout after: ${viz._layoutId}`);
+        }
+        settings.set_boolean('float-stats', false);
+        settings.set_boolean('float-viz', false);
+        await probeSleep(600);
+
         // The preferences window, opened the way a user does it: from Tempo's own menu.
         try {
             const item = this._button().menu._getMenuItems().find(i => i.label?.text === 'Settings');
@@ -913,6 +1097,21 @@ class TempoProbe {
             }
         }
         await probeScreenshot(`${this._out}/prefs.png`);
+
+        // The session ends with music playing at the highest frame rate, so that a recorder
+        // that is not stopped when GNOME Shell shuts down has a frame due in the moment the
+        // shell runs on (run.sh looks for that in the log).
+        settings.set_int('music-fps', 30);
+        if (this._audio) {
+            // The recorder starts again for the new rate: give it time to come back.
+            const playing = () => this._parts().bars?.visible === true &&
+                this._button()._tempoIndicator._capture !== null;
+            await probeSleep(1000);
+            for (let i = 0; i < 40 && !playing(); i++)
+                await probeSleep(100);
+            this._check('the session ends with music playing in the top bar', playing(),
+                `bars visible ${this._parts().bars?.visible}, recorder ${this._button()._tempoIndicator._capture !== null}`);
+        }
     }
 
     _finish() {

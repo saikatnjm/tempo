@@ -241,6 +241,18 @@ for (const [fps, samplesPerChunk] of [[12, 1035], [12, 1328], [12, 1344], [12, 3
     check('sameColor: null and null', sameColor(null, null));
     check('sameColor: nothing set yet differs from null', !sameColor(null, undefined));
     equal('screens: which power-save modes mean off', [-1, 0, 1, 2, 3, 4, NaN].map(screensAreOff), [false, false, true, true, true, false, false]);
+
+    // What a "PropertiesChanged" signal says about one property (the screens' and the players').
+    const signal = (changed, again) => new GLib.Variant('(sa{sv}as)', ['some.Interface', changed, again]);
+    const value = changedProperty(signal({PowerSaveMode: new GLib.Variant('i', 3), Other: new GLib.Variant('s', 'x')}, []), 'PowerSaveMode');
+    check('changed property: its new value', value instanceof GLib.Variant && value.get_type_string() === 'i' && value.get_int32() === 3);
+    check('changed property: changed, but the signal does not say to what',
+        changedProperty(signal({}, ['Other', 'PowerSaveMode']), 'PowerSaveMode') === undefined);
+    check('changed property: a signal about other properties',
+        changedProperty(signal({Other: new GLib.Variant('s', 'x')}, ['Another']), 'PowerSaveMode') === null);
+    check('changed property: an empty signal', changedProperty(signal({}, []), 'PowerSaveMode') === null);
+    check('changed property: a signal of another shape counts as changed',
+        changedProperty(new GLib.Variant('(si)', ['some.Interface', 3]), 'PowerSaveMode') === undefined);
 }
 
 for (const bars of [1, 4, 16, 32]) {
@@ -253,13 +265,25 @@ for (const bars of [1, 4, 16, 32]) {
 }
 
 // ---- against this machine's real /proc and /sys ----
+// Tempo itself never reads a file on the main thread; these tests may, to keep them simple.
+function readNow(path) {
+    try {
+        const [, bytes] = GLib.file_get_contents(path);
+        return new TextDecoder().decode(bytes);
+    } catch (e) {
+        return null;
+    }
+}
 {
     const sampler = new Sampler();
-    check('cpu count is positive', sampler.cpuCount >= 1, sampler.cpuCount);
-    equal('first cpu reading has nothing to compare with', sampler.cpu(10), null);
-    const memory = sampler.memory();
+    equal('cpu count before the first reading', sampler.cpuCount, 1);
+    equal('first cpu reading has nothing to compare with', sampler.cpu(readNow('/proc/stat'), 10), null);
+    check('cpu count comes with the first reading', sampler.cpuCount >= 1 && sampler.cpuCount === countCpus(readNow('/proc/stat')),
+        sampler.cpuCount);
+    equal('an unreadable /proc/stat gives no reading', new Sampler().cpu(null, 10), null);
+    const memory = sampler.memory(readNow('/proc/meminfo'));
     check('memory is readable', memory !== null && memory.total > 0 && memory.available <= memory.total);
-    equal('first network reading has nothing to compare with', sampler.network(10), null);
+    equal('first network reading has nothing to compare with', sampler.network(readNow('/proc/net/dev'), 10), null);
     // Keep the processor busy for a fixed 0.2 s (not a fixed amount of work: slow machines
     // would overrun the 0.9 s window this test is about).
     let x = 0;
@@ -267,29 +291,21 @@ for (const bars of [1, 4, 16, 32]) {
     while (GLib.get_monotonic_time() < until)
         x += Math.sqrt(x + 1);
     GLib.usleep(120000);
-    equal('a reading asked for too soon is refused', sampler.cpu(10), null);
-    equal('a network reading asked for too soon is refused', sampler.network(10), null);
+    equal('a reading asked for too soon is refused', sampler.cpu(readNow('/proc/stat'), 10), null);
+    equal('a network reading asked for too soon is refused', sampler.network(readNow('/proc/net/dev'), 10), null);
     GLib.usleep(900000);
-    const cpu = sampler.cpu(10);
+    const cpu = sampler.cpu(readNow('/proc/stat'), 10);
     check('a reading after a full second is a share', cpu !== null && cpu >= 0 && cpu <= 1, cpu);
     check('the refused reading did not move the baseline: this window saw the busy loop', cpu > 0, cpu);
-    const network = sampler.network(10);
+    const network = sampler.network(readNow('/proc/net/dev'), 10);
     check('second network reading is a rate', network !== null && network.down >= 0 && network.up >= 0);
     GLib.usleep(950000);
-    equal('stale readings are not compared', sampler.cpu(0), null);
-
-    const sensors = findSensors();
-    check('sensor search returns the expected shape',
-        'cpu' in sensors && 'gpu' in sensors && 'disk' in sensors && Array.isArray(sensors.fans));
-    if (sensors.cpu !== null) {
-        const milli = parseInt(readText(sensors.cpu), 10);
-        check('cpu temperature is plausible', milli > 0 && milli < 130000, milli);
-    }
+    equal('stale readings are not compared', sampler.cpu(readNow('/proc/stat'), 0), null);
 }
 
 // ---- asynchronous parts ----
 const loop = new GLib.MainLoop(null, false);
-let pendingAsync = 3;
+let pendingAsync = 6;
 function asyncDone() {
     if (--pendingAsync === 0)
         loop.quit();
@@ -307,11 +323,46 @@ function asyncDone() {
     });
     const cancelled = new Gio.Cancellable();
     readTextAsync('/proc/loadavg', cancelled, () => check('cancelled read must not call back', false));
+    readTextsAsync(['/proc/loadavg', '/proc/stat'], cancelled, () => check('cancelled reads must not call back', false));
     cancelled.cancel();
+    readTextsAsync([], cancelled, () => check('nothing to read and cancelled: must not call back', false));
+
+    // Several files at once: one answer, in the order asked, null for what is missing or left out.
+    let answers = 0;
+    readTextsAsync(['/proc/loadavg', '/nonexistent/tempo-test', null, '/proc/stat'], cancellable, texts => {
+        answers++;
+        equal('reading several files answers once', answers, 1);
+        equal('one text per path', texts.length, 4);
+        check('texts come in the order asked', typeof texts[0] === 'string' && texts[0].split(' ').length >= 3 &&
+            typeof texts[3] === 'string' && texts[3].startsWith('cpu '));
+        equal('a missing file and a path left out are null', [texts[1], texts[2]], [null, null]);
+        asyncDone();
+    });
+    let empty = null;
+    readTextsAsync([null, null], cancellable, texts => (empty = texts));
+    equal('nothing to read answers at once', empty, [null, null]);
+
+    findSensors(cancellable, sensors => {
+        check('sensor search returns the expected shape',
+            'cpu' in sensors && 'gpu' in sensors && 'disk' in sensors && Array.isArray(sensors.fans));
+        check('every fan has a path, a number and a priority', sensors.fans.every(fan =>
+            fan.path.endsWith(`/fan${fan.number}_input`) && [0, 1, 2].includes(fan.priority) && typeof fan.label === 'string'));
+        asyncDone();
+        if (sensors.cpu === null) {
+            asyncDone();
+            return;
+        }
+        readTextAsync(sensors.cpu, cancellable, text => {
+            const milli = parseInt(text, 10);
+            check('cpu temperature is plausible', milli > 0 && milli < 130000, milli);
+            asyncDone();
+        });
+    });
+    findSensors(cancelled, () => check('a cancelled sensor search must not call back', false));
 }
 {
     const results = [];
-    const scanner = new ProcScanner(4, list => {
+    const scanner = new ProcScanner(() => 4, list => {
         results.push(list);
         if (results.length === 1) {
             equal('first process scan is a baseline', list, null);

@@ -10,18 +10,9 @@
 
 const TEXT_DECODER = new TextDecoder();
 
-/** Read a small procfs/sysfs text file right now. Returns null if it cannot be read. */
-function readText(path) {
-    try {
-        const [ok, bytes] = GLib.file_get_contents(path);
-        return ok ? TEXT_DECODER.decode(bytes) : null;
-    } catch (e) {
-        return null;
-    }
-}
-
 /**
- * Read a text file on a worker thread, so slow hardware sensors can never stall the compositor.
+ * Read a text file on a worker thread, so reading can never stall the compositor (GNOME Shell
+ * does everything else on one thread, and a hardware sensor can take its time to answer).
  * `callback(text)` runs on the main loop; `text` is null if the file could not be read.
  * Nothing is called once `cancellable` has been cancelled.
  */
@@ -38,6 +29,54 @@ function readTextAsync(path, cancellable, callback) {
         if (!cancellable.is_cancelled())
             callback(text);
     });
+}
+
+/**
+ * Read several text files at once, the same way. `callback(texts)` runs once, when all are back:
+ * one text per path, in the same order, null where a file could not be read. A path that is null
+ * is not read (its text is null), so a caller can leave out what it does not need this time.
+ */
+function readTextsAsync(paths, cancellable, callback) {
+    const texts = paths.map(() => null);
+    let pending = paths.filter(path => path !== null).length;
+    if (pending === 0) {
+        if (!cancellable.is_cancelled())
+            callback(texts);
+        return;
+    }
+    paths.forEach((path, i) => {
+        if (path === null)
+            return;
+        readTextAsync(path, cancellable, text => {
+            texts[i] = text;
+            if (--pending === 0)
+                callback(texts);
+        });
+    });
+}
+
+/**
+ * The callback for an asynchronous call whose answer nobody needs. It has to be a function:
+ * GNOME Shell turns some of these calls into promise-style ones, and those take "no callback"
+ * to mean "give me a promise".
+ */
+function ignoreAnswer() {
+    // nothing to do: the answer is not looked at
+}
+
+/**
+ * What a D-Bus "PropertiesChanged" signal says about one property. The signal carries
+ * (interface, {changed properties}, [properties to ask for again]). Returns the property's new
+ * value (a GLib.Variant); `undefined` when it changed but the signal does not say to what, or is
+ * not shaped as the standard says; null when the signal is not about this property.
+ */
+function changedProperty(params, name) {
+    if (params.get_type_string() !== '(sa{sv}as)')
+        return undefined;
+    const value = params.get_child_value(1).lookup_value(name, null);
+    if (value !== null)
+        return value;
+    return params.get_child_value(2).deep_unpack().includes(name) ? undefined : null;
 }
 
 function clamp(value, min, max) {

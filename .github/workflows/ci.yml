@@ -38,6 +38,7 @@ jobs:
           - {gnome: "48", base: "debian:13", dockerfile: Dockerfile.apt}
           - {gnome: "49", base: "fedora:43", dockerfile: Dockerfile.dnf}
           - {gnome: "50", base: "ubuntu:26.04", dockerfile: Dockerfile.apt}
+          - {gnome: "51", base: "fedora:45", dockerfile: Dockerfile.dnf}
     steps:
       - uses: actions/checkout@v4
       - name: Build a container with this GNOME Shell

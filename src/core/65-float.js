@@ -53,7 +53,13 @@ class MeterWidget {
             x_expand: true,
             y_align: Clutter.ActorAlign.CENTER,
         });
-        this.actor.connect('repaint', area => this._draw(area));
+        this._repaintId = this.actor.connect('repaint', area => this._draw(area));
+    }
+
+    destroy() {
+        this.actor.disconnect(this._repaintId);
+        this.actor.destroy();
+        this.actor = null;
     }
 
     /** @param {number[]|null} rgb - [r, g, b] 0..255, or null to use the text colour */
@@ -145,24 +151,47 @@ class VizWidget {
         this._coloured = false;
         // Wave: drawn with cairo.
         this._area = new St.DrawingArea({x_expand: true, y_expand: true});
-        this._area.connect('repaint', area => this._draw(area));
+        this._repaintId = this._area.connect('repaint', area => this._draw(area));
         this.actor.add_child(this._barBox);
         this.actor.add_child(this._area);
         this._layoutId = 0;
-        this.actor.connect('notify::allocation', () => this._queueLayout());
+        this._allocationId = this.actor.connect('notify::allocation', () => this._queueLayout());
         // Off screen (the overview hides the desktop) nothing is updated; catch up on return.
-        this.actor.connect('notify::mapped', () => {
+        this._mappedId = this.actor.connect('notify::mapped', () => {
             this._mapped = this.actor.mapped;
             if (this._mapped && this._stale)
                 this._apply();
         });
-        this.actor.connect('destroy', () => {
-            if (this._layoutId)
-                GLib.source_remove(this._layoutId);
-            this._layoutId = 0;
-        });
+        // GNOME Shell destroys a panel that sits on top itself when it shuts down, and calls no
+        // destroy() of ours then: a layout that is still waiting must not run after that.
+        this._destroyId = this.actor.connect('destroy', () => this._dropLayout());
         this.actor._delegate = this;
         this.setStyle('bars');
+    }
+
+    destroy() {
+        // First what could still ask for a new layout, and the layout that is waiting.
+        this.actor.disconnect(this._allocationId);
+        this.actor.disconnect(this._mappedId);
+        this.actor.disconnect(this._destroyId);
+        this._area.disconnect(this._repaintId);
+        this._dropLayout();
+        // Then the actors, innermost first.
+        for (const bar of this._barActors)
+            bar.destroy();               // each takes its "repaint" handler with it
+        this._barActors = [];
+        this._bars.destroy();
+        this._bars = null;
+        this._capLayer.destroy();        // and every cap in it
+        this._capLayer = null;
+        this._caps = [];
+        this._capsBelow = [];
+        this._barBox.destroy();
+        this._barBox = null;
+        this._area.destroy();
+        this._area = null;
+        this.actor.destroy();
+        this.actor = null;
     }
 
     // The bars are placed by hand, which must not happen while GNOME Shell is in the middle of
@@ -175,6 +204,12 @@ class VizWidget {
             this._layout();
             return GLib.SOURCE_REMOVE;
         });
+    }
+
+    _dropLayout() {
+        if (this._layoutId)
+            GLib.source_remove(this._layoutId);
+        this._layoutId = 0;
     }
 
     setStyle(style) {
@@ -483,12 +518,23 @@ class FanWidget {
         this._color = undefined;
         this.actor = new St.DrawingArea({style_class: styleClass, x_expand: true, y_expand: true});
         this.actor.set_pivot_point(0.5, 0.5);
-        this.actor.connect('repaint', area => this._draw(area));
+        this._repaintId = this.actor.connect('repaint', area => this._draw(area));
         this.actor._delegate = this;
-        this.actor.connect('destroy', () => this._stop());
         // No turning where nobody sees it (the overview hides the desktop; a fullscreen window
         // hides a panel that sits on top).
-        this.actor.connect('notify::mapped', () => this._sync());
+        this._mappedId = this.actor.connect('notify::mapped', () => this._sync());
+        // GNOME Shell destroys a panel that sits on top itself when it shuts down, and calls no
+        // destroy() of ours then: the fan must not go on turning after that.
+        this._destroyId = this.actor.connect('destroy', () => this._stop());
+    }
+
+    destroy() {
+        this.actor.disconnect(this._repaintId);
+        this.actor.disconnect(this._mappedId);
+        this.actor.disconnect(this._destroyId);
+        this._stop();
+        this.actor.destroy();
+        this.actor = null;
     }
 
     /** @param {number[]|null} rgb - [r, g, b] 0..255, or null to use the text colour */
@@ -572,6 +618,7 @@ class FanWidget {
 
 /**
  * A movable, resizable panel. `content` is any actor; `settings` + `rectKey` store x, y, w, h.
+ * The content stays its maker's: destroy it first, then the panel.
  */
 class FloatPanel {
     constructor({name, content, settings, rectKey, defaultSize}) {
@@ -606,11 +653,11 @@ class FloatPanel {
             opacity: 0,
         });
         this.actor.add_child(this._grip);
-        this.actor.connect('notify::hover', () => {
+        this._hoverId = this.actor.connect('notify::hover', () => {
             this._grip.remove_all_transitions();
             this._grip.ease({opacity: this.actor.hover || this._drag ? 255 : 0, duration: 150});
         });
-        this.actor.connect('button-press-event', (_a, event) => this._onPress(event));
+        this._pressId = this.actor.connect('button-press-event', (_a, event) => this._onPress(event));
         this._dragIds = [];
         this._monitorsId = Main.layoutManager.connect('monitors-changed', () => this._place());
         // The saved place can also be changed from outside (a reset in dconf, for a lost panel).
@@ -624,8 +671,14 @@ class FloatPanel {
         this._endDrag(false);
         this._settings.disconnect(this._rectId);
         Main.layoutManager.disconnect(this._monitorsId);
+        this.actor.disconnect(this._hoverId);
+        this.actor.disconnect(this._pressId);
         this._detach();
+        this._grip.remove_all_transitions();
+        this._grip.destroy();
+        this._grip = null;
         this.actor.destroy();
+        this.actor = null;
     }
 
     setLook(background) {
@@ -798,6 +851,11 @@ class StatsPanel {
         this._withFan = false;
         this._design = null;
         this._paused = false;
+        this._items = null;              // per reading: its gauge and its value label
+        this._fan = null;
+        this._fanValue = null;
+        this._fanMode = null;
+        this._net = null;
         this.content = new St.BoxLayout({style_class: 'tempo-float-content'});
         this.content.layout_manager.orientation = Clutter.Orientation.VERTICAL;
         this.panel = new FloatPanel({
@@ -810,7 +868,28 @@ class StatsPanel {
     }
 
     destroy() {
+        this._clear();
+        this.content.destroy();
+        this.content = null;
         this.panel.destroy();
+        this.panel = null;
+    }
+
+    // Take the design on show apart: the gauges and the fan first (the fan stops turning), then
+    // the labels and boxes around them.
+    _clear() {
+        if (this._items !== null) {
+            for (const item of Object.values(this._items))
+                item.gauge.destroy();
+        }
+        this._items = null;
+        if (this._fan !== null)
+            this._fan.destroy();
+        this._fan = null;
+        this._fanValue = null;
+        this._fanMode = null;
+        this._net = null;
+        this.content.destroy_all_children();
     }
 
     /**
@@ -827,7 +906,7 @@ class StatsPanel {
         }
         this._design = design;
         this._withFan = withFan;
-        this.content.destroy_all_children();
+        this._clear();
         this._items = {};
         const keys = [['cpu', _('Processor')], ['memory', _('Memory')], ['temperature', _('Temperature')]];
         if (design === 'rings') {
@@ -899,8 +978,6 @@ class StatsPanel {
         footer.add_child(this._net);
         footer.add_child(this._fanMode);
         this.content.add_child(footer);
-        if (!withFan)
-            this._fan = this._fanValue = null;
         this._fan?.setPaused(this._paused);
         this._applyPalette(palette);
         return true;

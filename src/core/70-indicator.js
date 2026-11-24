@@ -2,8 +2,8 @@
 //
 // Cost model, in one place:
 //  * System readings: one low-priority timer (every `refresh-interval` seconds, default 3) reads
-//    three small /proc files and one sensor. If nothing is shown and the menu is closed, the
-//    timer is removed altogether.
+//    three small /proc files and one sensor, all on worker threads. If nothing is shown and the
+//    menu is closed, the timer is removed altogether.
 //  * Drawing: a ring or label is only repainted when the value it shows changes.
 //  * Menu details (fan, disk temperature, busiest apps, what is playing) are read only while
 //    the menu is open; the hover tip asks the players only when the pointer rests on the bars.
@@ -64,7 +64,8 @@ class TempoIndicator {
     constructor({settings, path, uuid, openPreferences}) {
         this._settings = settings;
         this._openPreferences = openPreferences;
-        this._destroyed = false;
+        // For every file read and question asked here: cancelled in destroy(), and no answer
+        // that is still on its way is acted on after that.
         this._cancellable = new Gio.Cancellable();
         this._timers = new Map();
         this._refreshId = 0;
@@ -73,12 +74,12 @@ class TempoIndicator {
         this._screenOff = false;
 
         this._sampler = new Sampler();
-        this._sensors = findSensors();
+        this._sensors = {cpu: null, gpu: null, disk: null, fans: []};     // until they are found
         this._sensorMisses = 0;
         this._sensorRescanAt = TEMP_MISSES_BEFORE_RESCAN;
         this._sensorSearchGap = SENSOR_SEARCH_FIRST;     // readings between looks for a missing sensor
         this._sensorSearchAt = SENSOR_SEARCH_FIRST;
-        this._procs = new ProcScanner(this._sampler.cpuCount, list => this._showProcesses(list));
+        this._procs = new ProcScanner(() => this._sampler.cpuCount, list => this._showProcesses(list));
 
         this._cpu = null;
         this._memory = null;
@@ -117,14 +118,9 @@ class TempoIndicator {
         this._applySensors();
         Main.panel.addToStatusArea(uuid, this._button, 0, 'right');
 
-        this._mixer = null;
-        this._mixerId = 0;
-        try {
-            this._mixer = Volume.getMixerControl();
-            this._mixerId = this._mixer.connect('default-sink-changed', () => this._onOutputChanged());
-        } catch (e) {
-            this._mixer = null;      // no mixer: the bars simply don't follow output switches
-        }
+        // GNOME Shell's own volume control says when the sound moves to other speakers.
+        this._mixer = Volume.getMixerControl();
+        this._mixerId = this._mixer.connect('default-sink-changed', () => this._onOutputChanged());
 
         // While a fullscreen window covers the music visuals nobody can see them: don't listen.
         this._fullscreenId = global.display.connect('in-fullscreen-changed',
@@ -141,15 +137,71 @@ class TempoIndicator {
                 this._applySettings();
         });
         this._applySettings();
+        this._rescanSensors();
         // Rates need two readings; take the second one soon so the rings fill in right away.
         this._setTimer('warmup', MENU_FOLLOWUP_MS, () => this._refresh());
     }
 
     destroy() {
-        // Set first: destroying the button closes an open menu, and nothing that reacts to that
-        // may start a new timer or process.
-        this._destroyed = true;
+        // First everything that could still call in here: once that is gone, nothing below can
+        // start anything again. (Destroying the button closes an open menu, for one: by then
+        // nobody may be listening to the menu any more.) Where GNOME Shell destroyed the button
+        // itself, _stop() ran at that moment, and the button's own parts went with it.
+        if (this._button !== null) {
+            this._button.disconnect(this._buttonId);
+            this._button.menu.disconnect(this._menuId);
+            this._bars.actor.disconnect(this._hoverId);
+            this._netDown.disconnect(this._netStyleId);
+            this._stop();
+        }
+
+        // Then what is on screen: the parts that float, the button's own parts, the button.
+        this._removeStrip();
+        this._removeTip();
+        this._removeFloats();
+        if (this._button === null)
+            return;
+        for (const {row} of this._playingItems)
+            row.destroy();
+        this._playingItems = [];
+        this._bars.actor.remove_all_transitions();
+        this._bars.destroy();
+        this._bars = null;
+        this._cpuRing.destroy();
+        this._cpuRing = null;
+        this._memoryRing.destroy();
+        this._memoryRing = null;
+        this._tempLabel.destroy();
+        this._tempLabel = null;
+        this._netBox.destroy();              // and both of its lines
+        this._netBox = null;
+        this._netDown = null;
+        this._netUp = null;
+        this._netSlots = [];
+        this._icon.destroy();
+        this._icon = null;
+        this._musicSwitch.destroy();
+        this._musicSwitch = null;
+        this._musicHint.destroy();
+        this._musicHint = null;
+        this._floatMenu.destroy();           // and its two switches
+        this._floatMenu = null;
+        this._fanMode.destroy();             // and its three choices
+        this._fanMode = null;
+        this._button._tempoIndicator = null;
+        this._button.destroy();              // and the rest of its menu
+        this._button = null;
+    }
+
+    // Everything that runs by itself or could still call in here from outside: the settings,
+    // the display and the mixer, timers, files being read, the players, the recorder and the
+    // screens. It touches nothing that is on screen, so it can also run while GNOME Shell is
+    // taking the top bar apart (see _onButtonDestroyed).
+    _stop() {
         this._settings.disconnect(this._settingsId);
+        global.display.disconnect(this._fullscreenId);
+        this._mixer.disconnect(this._mixerId);
+        this._mixer = null;
         if (this._refreshId)
             GLib.source_remove(this._refreshId);
         this._refreshId = 0;
@@ -164,17 +216,18 @@ class TempoIndicator {
         if (this._capture !== null)
             this._capture.stop();
         this._capture = null;
-        if (this._mixer !== null && this._mixerId)
-            this._mixer.disconnect(this._mixerId);
-        this._mixer = null;
-        global.display.disconnect(this._fullscreenId);
         this._screen.destroy();
-        this._removeStrip();
-        this._removeTip();
-        this._removeFloats();
-        this._bars.actor.remove_all_transitions();
-        this._button._tempoIndicator = null;
-        this._button.destroy();
+    }
+
+    // GNOME Shell destroyed the button without switching Tempo off, which is what it does when
+    // it shuts down: it destroys its whole interface, and from GNOME 48 on its main loop then
+    // runs for a moment longer. Stop at once, or the recorder's next frame, a timer or an answer
+    // still on its way would reach for widgets that are no longer there. The button's own parts
+    // are destroyed with it. What floats stays until destroy() if it is on the desktop; the
+    // level line and a panel that sits on top are destroyed by the shell as well, and the fan
+    // and the visualizer then stop what they have running themselves (FanWidget, VizWidget).
+    _onButtonDestroyed() {
+        this._stop();
         this._button = null;
     }
 
@@ -183,13 +236,15 @@ class TempoIndicator {
     _buildButton(path) {
         this._button = new PanelMenu.Button(0.5, 'Tempo', false);
         this._button.add_style_class_name('tempo-button');
+        // GNOME Shell destroys the button itself when it shuts down: see _onButtonDestroyed.
+        this._buttonId = this._button.connect('destroy', () => this._onButtonDestroyed());
         // For the test suite and for looking around in Looking Glass:
         // Main.panel.statusArea['tempo@saikatnjm.github.io']._tempoIndicator
         this._button._tempoIndicator = this;
 
         const box = new St.BoxLayout({style_class: 'tempo-box'});
         this._bars = new BarsWidget(BAR_COUNT);
-        this._bars.actor.connect('notify::hover', () => this._onBarsHover());
+        this._hoverId = this._bars.actor.connect('notify::hover', () => this._onBarsHover());
         this._cpuRing = new RingWidget();
         this._memoryRing = new RingWidget();
         this._tempLabel = new St.Label({
@@ -226,7 +281,7 @@ class TempoIndicator {
         this._netDown = line('↓');
         this._netUp = line('↑');
         // The font is only known once the theme has been applied, and can change with it.
-        this._netDown.connect('style-changed', () => this._sizeNetSlots());
+        this._netStyleId = this._netDown.connect('style-changed', () => this._sizeNetSlots());
         // Shown only when everything else is switched off, so the menu stays reachable.
         this._icon = new St.Icon({
             gicon: Gio.icon_new_for_string(`${path}/icons/tempo-symbolic.svg`),
@@ -249,33 +304,27 @@ class TempoIndicator {
     _sizeNetSlots() {
         if (this._sizingNet)
             return;
+        const label = this._netDown;
+        // "style-changed" also comes with every hover and press of the button; the widths
+        // only depend on the font, so measure again only when that is another one.
+        const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
+        const font = `${label.get_theme_node().get_font().to_string()} x${scale}`;
+        if (font === this._netFont)
+            return;
+        this._netFont = font;
         this._sizingNet = true;
-        try {
-            const label = this._netDown;
-            // "style-changed" also comes with every hover and press of the button; the widths
-            // only depend on the font, so measure again only when that is another one.
-            const scale = St.ThemeContext.get_for_stage(global.stage).scale_factor;
-            const font = `${label.get_theme_node().get_font().to_string()} x${scale}`;
-            if (font === this._netFont) {
-                this._sizingNet = false;
-                return;
-            }
-            this._netFont = font;
-            const shown = label.text;
-            let widest = 0;
-            for (const sample of NET_WIDEST_SAMPLES) {
-                label.text = sample;
-                widest = Math.max(widest, label.get_preferred_width(-1)[1]);
-            }
-            label.text = shown;
-            widest = Math.ceil(widest);
-            if (widest > 0 && widest !== this._netSlotWidth) {
-                this._netSlotWidth = widest;
-                for (const {bin} of this._netSlots)
-                    bin.set_width(widest);
-            }
-        } catch (e) {
-            // keep the stylesheet's width
+        const shown = label.text;
+        let widest = 0;
+        for (const sample of NET_WIDEST_SAMPLES) {
+            label.text = sample;
+            widest = Math.max(widest, label.get_preferred_width(-1)[1]);
+        }
+        label.text = shown;
+        widest = Math.ceil(widest);
+        if (widest > 0 && widest !== this._netSlotWidth) {
+            this._netSlotWidth = widest;
+            for (const {bin} of this._netSlots)
+                bin.set_width(widest);
         }
         this._sizingNet = false;
     }
@@ -393,7 +442,7 @@ class TempoIndicator {
         });
         menu.addMenuItem(link);
 
-        menu.connect('open-state-changed', (_menu, open) => this._onMenuToggled(open));
+        this._menuId = menu.connect('open-state-changed', (_menu, open) => this._onMenuToggled(open));
     }
 
     // "Fan mode" with three choices, shown only when the tempo-fan service is installed.
@@ -432,9 +481,9 @@ class TempoIndicator {
                 try {
                     writable = f.query_info_finish(result).get_attribute_boolean('access::can-write');
                 } catch (e) {
-                    // not installed
+                    // not installed (or cancelled: see below)
                 }
-                if (this._destroyed)
+                if (this._cancellable.is_cancelled())
                     return;
                 this._fanMode.visible = writable;
                 if (!writable) {
@@ -463,11 +512,11 @@ class TempoIndicator {
                 try {
                     f.replace_contents_finish(result);
                 } catch (e) {
-                    console.error(`Tempo: could not change the fan mode: ${e.message}`);
+                    if (!this._cancellable.is_cancelled())
+                        console.error(`Tempo: could not change the fan mode: ${e.message}`);
                     return;
                 }
-                if (!this._destroyed)
-                    this._showFanMode(mode);
+                this._showFanMode(mode);
             });
     }
 
@@ -495,17 +544,13 @@ class TempoIndicator {
 
     // ---- timers ------------------------------------------------------------------------------
 
+    // One-shot timers by name: setting one again replaces it, and destroy() removes whatever is
+    // still waiting.
     _setTimer(name, milliseconds, callback) {
         this._clearTimer(name);
-        if (this._destroyed)
-            return;
         this._timers.set(name, GLib.timeout_add(GLib.PRIORITY_DEFAULT, milliseconds, () => {
             this._timers.delete(name);
-            try {
-                callback();
-            } catch (e) {
-                console.error(`Tempo: ${e}\n${e.stack ?? ''}`);
-            }
+            callback();
             return GLib.SOURCE_REMOVE;
         }));
     }
@@ -525,7 +570,7 @@ class TempoIndicator {
         const bar = !this._fullscreenOn(Main.layoutManager.primaryMonitor) && (this._showCpu ||
             this._showMemory || this._showNetwork || this._showTemperature);
         const panel = this._stats !== null && !this._fullscreenOn(this._monitorOf(this._stats.panel.actor));
-        const needed = !this._destroyed && !this._screenOff && (bar || panel || this._button.menu.isOpen);
+        const needed = !this._screenOff && (bar || panel || this._button.menu.isOpen);
         if (needed && this._refreshId && this._refreshInterval === this._interval)
             return;
         if (this._refreshId) {
@@ -544,8 +589,6 @@ class TempoIndicator {
     // ---- settings ----------------------------------------------------------------------------
 
     _applySettings() {
-        if (this._destroyed)
-            return;
         const s = this._settings;
         this._showCpu = s.get_boolean('show-cpu');
         this._showMemory = s.get_boolean('show-memory');
@@ -590,34 +633,35 @@ class TempoIndicator {
 
     // ---- system readings ---------------------------------------------------------------------
 
+    // One reading: the three small /proc files are read together on worker threads, and the
+    // numbers are worked out when all three are back. A file nobody needs right now is not read.
     _refresh() {
-        if (this._destroyed)
-            return;
-        try {
-            this._sample();
-        } catch (e) {
-            console.error(`Tempo: ${e}\n${e.stack ?? ''}`);
-        }
-    }
-
-    _sample() {
         if (this._screenOff)
             return;
+        const all = this._button.menu.isOpen || this._stats !== null;
+        readTextsAsync([
+            this._showCpu || all ? '/proc/stat' : null,
+            this._showMemory || all ? '/proc/meminfo' : null,
+            this._showNetwork || all ? '/proc/net/dev' : null,
+        ], this._cancellable, texts => this._onSample(...texts));
+    }
+
+    _onSample(stat, meminfo, netdev) {
         const menuOpen = this._button.menu.isOpen;
         const maxAge = this._interval * 3 + 2;
         const count = this._samples++;
 
         const panel = this._stats;
-        if (this._showCpu || menuOpen || panel) {
-            const cpu = this._sampler.cpu(maxAge);
+        if (stat !== null) {
+            const cpu = this._sampler.cpu(stat, maxAge);
             if (cpu !== null) {
                 this._cpu = cpu;
                 this._cpuRing.set(cpu);
                 panel?.setCpu(cpu);
             }
         }
-        if (this._showMemory || menuOpen || panel) {
-            const memory = this._sampler.memory();
+        if (meminfo !== null) {
+            const memory = this._sampler.memory(meminfo);
             if (memory !== null) {
                 this._memory = memory;
                 const used = (memory.total - memory.available) / memory.total;
@@ -625,8 +669,8 @@ class TempoIndicator {
                 panel?.setMemory(used);
             }
         }
-        if (this._showNetwork || menuOpen || panel) {
-            const network = this._sampler.network(maxAge);
+        if (netdev !== null) {
+            const network = this._sampler.network(netdev, maxAge);
             if (network !== null) {
                 this._network = network;
                 setLabel(this._netDown, formatRateCompact(network.down));
@@ -636,8 +680,7 @@ class TempoIndicator {
         }
         if (this._showTemperature || menuOpen || panel) {
             if (this._sensors.cpu !== null) {
-                readTextAsync(this._sensors.cpu, this._cancellable,
-                    text => this._onTemperature(text));
+                this._readTemperature();
             } else if (count >= this._sensorSearchAt) {
                 // No sensor (yet): its driver may load late, or come back after a reload. Look
                 // again now and then, less and less often.
@@ -655,6 +698,10 @@ class TempoIndicator {
         }
         if (menuOpen)
             this._refreshMenu();
+    }
+
+    _readTemperature() {
+        readTextAsync(this._sensors.cpu, this._cancellable, text => this._onTemperature(text));
     }
 
     _onTemperature(text) {
@@ -684,17 +731,23 @@ class TempoIndicator {
             this._syncVisibility();
     }
 
+    // Look for the sensors (again). The answer comes back a moment later.
     _rescanSensors() {
-        this._sensors = findSensors();
-        if (this._sensors.cpu !== null) {
-            // Found: should it go missing again, start looking soon again.
+        findSensors(this._cancellable, sensors => {
+            this._sensors = sensors;
+            this._applySensors();
+            this._syncVisibility();
+            this._syncFloats();              // the system panel shows a fan only if there is one
+            this._syncRefreshTimer();
+            if (sensors.cpu === null)
+                return;
+            // Found: should it go missing again, start looking soon again. And show the
+            // temperature at once, where it is on show.
             this._sensorSearchGap = SENSOR_SEARCH_FIRST;
             this._sensorSearchAt = this._samples + SENSOR_SEARCH_FIRST;
-        }
-        this._applySensors();
-        this._syncVisibility();
-        this._syncFloats();                  // the system panel shows a fan only if there is one
-        this._syncRefreshTimer();
+            if (this._showTemperature || this._button.menu.isOpen || this._stats !== null)
+                this._readTemperature();
+        });
     }
 
     _showTemperatureValue(celsius) {
@@ -714,8 +767,6 @@ class TempoIndicator {
     // ---- menu --------------------------------------------------------------------------------
 
     _onMenuToggled(open) {
-        if (this._destroyed)
-            return;
         if (!open) {
             this._clearTimer('followup');
             this._procs.cancel();
@@ -748,8 +799,10 @@ class TempoIndicator {
             this._ghz = mhz === null ? '' : `${(mhz / 1000).toFixed(2)} GHz`;
             setLabel(rows.cpu.value, this._ghz ? `${usage}  ·  ${this._ghz}` : usage);
         });
-        const load = (readText('/proc/loadavg') ?? '').split(' ');
-        setLabel(rows.load.value, load.length >= 3 ? load.slice(0, 3).join('  ') : '–');
+        readTextAsync('/proc/loadavg', this._cancellable, text => {
+            const load = (text ?? '').split(' ');
+            setLabel(rows.load.value, load.length >= 3 ? load.slice(0, 3).join('  ') : '–');
+        });
 
         const memory = this._memory;
         if (memory !== null) {
@@ -879,10 +932,7 @@ class TempoIndicator {
             this._showNowPlaying([]);
             return;
         }
-        this._players.describe(list => {
-            if (!this._destroyed)
-                this._showNowPlaying(list);
-        });
+        this._players.describe(list => this._showNowPlaying(list));
     }
 
     _showNowPlaying(list) {
@@ -907,8 +957,6 @@ class TempoIndicator {
 
     // Resting the pointer on the music bars shows what is playing, and in which app.
     _onBarsHover() {
-        if (this._destroyed)
-            return;
         if (this._bars.actor.hover && this._barsShown && !this._button.menu.isOpen) {
             this._setTimer('tip', TIP_DELAY_MS, () => this._showTip());
         } else {
@@ -921,8 +969,7 @@ class TempoIndicator {
         if (this._players === null || !this._bars.actor.hover || this._button.menu.isOpen)
             return;
         this._players.describe(list => {
-            if (this._destroyed || list.length === 0 || !this._bars.actor.hover ||
-                this._button.menu.isOpen)
+            if (list.length === 0 || !this._bars.actor.hover || this._button.menu.isOpen)
                 return;
             if (this._tip === null) {
                 this._tip = new St.BoxLayout({style_class: 'tempo-tip', reactive: false});
@@ -986,16 +1033,16 @@ class TempoIndicator {
             return;
         this._tip.remove_all_transitions();
         Main.layoutManager.removeChrome(this._tip);
+        for (const {row} of this._tipRows)
+            row.destroy();
+        this._tipRows = [];
         this._tip.destroy();
         this._tip = null;
-        this._tipRows = [];
     }
 
     // ---- floating panels ---------------------------------------------------------------------
 
     _syncFloats() {
-        if (this._destroyed)
-            return;
         const s = this._settings;
         this._floatSwitches['float-stats'].setToggleState(this._floatStatsOn);
         this._floatSwitches['float-viz'].setToggleState(this._vizOn);
@@ -1034,10 +1081,8 @@ class TempoIndicator {
             this._viz.setPalette(this._palette ? this._palette.bars : null);
             this._vizPanel.setLook(look);
             this._vizPanel.setLayer(layer);
-        } else if (this._vizPanel !== null) {
-            this._vizPanel.destroy();
-            this._vizPanel = null;
-            this._viz = null;
+        } else {
+            this._removeViz();
         }
         this._syncRefreshTimer();
     }
@@ -1058,12 +1103,20 @@ class TempoIndicator {
         }
     }
 
-    _removeFloats() {
-        this._stats?.destroy();
-        this._stats = null;
-        this._vizPanel?.destroy();
-        this._vizPanel = null;
+    _removeViz() {
+        if (this._vizPanel === null)
+            return;
+        this._viz.destroy();                 // what the panel shows goes first, then the panel
         this._viz = null;
+        this._vizPanel.destroy();
+        this._vizPanel = null;
+    }
+
+    _removeFloats() {
+        if (this._stats !== null)
+            this._stats.destroy();
+        this._stats = null;
+        this._removeViz();
     }
 
     // ---- music visuals -----------------------------------------------------------------------
@@ -1145,8 +1198,6 @@ class TempoIndicator {
 
     // A fullscreen window came or went, or a panel moved to another screen.
     _onFullscreenChanged() {
-        if (this._destroyed)
-            return;
         if (this._musicHidden()) {
             if (this._capture !== null)
                 this._stopCapture();
@@ -1162,8 +1213,6 @@ class TempoIndicator {
     // Screens off: nobody is looking, so nothing is read, listened to or animated until they
     // are back on.
     _onScreenPower(off) {
-        if (this._destroyed)
-            return;
         this._screenOff = off;
         this._stats?.setPaused(off);
         if (off) {
@@ -1184,8 +1233,8 @@ class TempoIndicator {
     }
 
     _startCapture() {
-        if (this._destroyed || this._capture !== null || this._players === null || !this._playing ||
-            this._screenOff || this._musicHidden())
+        if (this._capture !== null || this._players === null || !this._playing || this._screenOff ||
+            this._musicHidden())
             return;
         const capture = new AudioCapture({
             bars: this._bands,
@@ -1363,7 +1412,7 @@ class TempoIndicator {
         this._panelBoxId = 0;
         this._strip.actor.remove_all_transitions();
         Main.layoutManager.removeChrome(this._strip.actor);
-        this._strip.actor.destroy();
+        this._strip.destroy();
         this._strip = null;
     }
 }

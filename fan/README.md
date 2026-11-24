@@ -34,7 +34,9 @@ when there is nothing better.
 
 The easy way: open Tempo's **Settings**, scroll to **Fan control** and press **Install**. GNOME
 asks for your password once, because fans can only be driven with administrator rights. The
-same button removes it again.
+same button removes it again. (A copy of Tempo installed through extensions.gnome.org has no
+such button, because that website does not let an extension run an installer: use the commands
+below.)
 
 From the source code:
 

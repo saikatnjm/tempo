@@ -1,11 +1,13 @@
-// ---- sampler: reads CPU, memory, network, sensors and processes from /proc and /sys ----------
+// ---- sampler: turns /proc and /sys into CPU, memory, network, sensor and process readings ----
 //
 // The parse* functions are pure (text in, numbers out) so they can be unit-tested with fixtures.
+// No file is read on the main thread: see readTextAsync() in 10-util.js.
 
 const USER_HZ = 100;          // clock ticks per second in /proc/<pid>/stat on Linux
-const PROC_SLICE = 32;        // processes read per main-loop slice (about 1 ms)
+const PROC_SLICE = 32;        // processes read at a time
 const TOP_PROCESSES = 4;
 const HWMON_MAX = 32;
+const THERMAL_ZONES_MAX = 16;
 const FAN_INPUTS_MAX = 10;         // fan1_input .. fan10_input per sensor chip
 // Chips that report graphics-card fans; the processor fan is preferred over those.
 const GPU_HWMON = ['amdgpu', 'radeon', 'nouveau', 'nvidia', 'xe', 'i915'];
@@ -147,70 +149,95 @@ function parseCpuMhz(text) {
 }
 
 /**
- * Find the temperature and fan sensors once. Every path is a sysfs file holding millidegrees
- * Celsius (or RPM for fans); a missing sensor is null. Works for AMD, Intel and ARM boards.
+ * Find the temperature and fan sensors. `callback(sensors)` gets {cpu, gpu, disk, fans}: every
+ * path is a sysfs file holding millidegrees Celsius (or RPM for fans); a missing sensor is null.
+ * Works for AMD, Intel and ARM boards.
+ *
+ * The small files that name and label the sensors are read on worker threads, in two rounds:
+ * first what every sensor chip and thermal zone is called, then the labels of the inputs that
+ * turned out to matter. Nothing is called once `cancellable` has been cancelled.
  */
-function findSensors() {
-    const monitors = [];
-    for (let i = 0; i < HWMON_MAX; i++) {
-        const dir = `/sys/class/hwmon/hwmon${i}`;
-        const name = readText(`${dir}/name`);
-        if (name !== null)
-            monitors.push({dir, name: name.trim()});
-    }
+function findSensors(cancellable, callback) {
     const exists = path => GLib.file_test(path, GLib.FileTest.EXISTS);
-    const firstNamed = names => {
-        for (const wanted of names) {
-            for (const m of monitors) {
-                if (m.name === wanted && exists(`${m.dir}/temp1_input`))
-                    return `${m.dir}/temp1_input`;
+    const numbered = (base, max) => {
+        const found = [];
+        for (let i = 0; i < max; i++) {
+            if (exists(`${base}${i}`))
+                found.push(`${base}${i}`);
+        }
+        return found;
+    };
+    const dirs = numbered('/sys/class/hwmon/hwmon', HWMON_MAX);
+    const zones = numbered('/sys/class/thermal/thermal_zone', THERMAL_ZONES_MAX);
+    const names = [...dirs.map(dir => `${dir}/name`), ...zones.map(zone => `${zone}/type`)];
+
+    readTextsAsync(names, cancellable, nameTexts => {
+        const monitors = [];
+        dirs.forEach((dir, i) => {
+            if (nameTexts[i] !== null)
+                monitors.push({dir, name: nameTexts[i].trim()});
+        });
+        const zoneTypes = zones.map((zone, i) => ({zone, type: nameTexts[dirs.length + i]}));
+
+        // AMD: Tctl can carry an offset on some chips; Tdie, when the driver offers it, does not.
+        const amd = monitors.find(m => (m.name === 'k10temp' || m.name === 'zenpower') &&
+            exists(`${m.dir}/temp1_input`));
+        // Every fan input of every chip: on desktop boards the processor fan is often fan2 or
+        // higher.
+        const fanInputs = [];
+        for (const m of monitors) {
+            for (let i = 1; i <= FAN_INPUTS_MAX; i++) {
+                if (exists(`${m.dir}/fan${i}_input`))
+                    fanInputs.push({monitor: m, number: i});
             }
         }
-        return null;
-    };
+        const labels = [
+            ...(amd ? [2, 3, 4].map(i => `${amd.dir}/temp${i}_label`) : []),
+            ...fanInputs.map(f => `${f.monitor.dir}/fan${f.number}_label`),
+        ];
 
-    // AMD: Tctl can carry an offset on some chips; Tdie, when the driver offers it, does not.
-    let cpu = null;
-    for (const m of monitors) {
-        if (m.name !== 'k10temp' && m.name !== 'zenpower')
-            continue;
-        if (!exists(`${m.dir}/temp1_input`))
-            continue;
-        cpu = `${m.dir}/temp1_input`;
-        for (let i = 2; i <= 4; i++) {
-            if ((readText(`${m.dir}/temp${i}_label`) ?? '').trim() === 'Tdie')
-                cpu = `${m.dir}/temp${i}_input`;
-        }
-        break;
-    }
-    cpu ??= firstNamed(['coretemp', 'cpu_thermal', 'cpu-thermal', 'soc_thermal', 'thinkpad', 'acpitz']);
-    for (const pattern of [/x86_pkg_temp|cpu|soc/i, /acpitz/i]) {
-        for (let i = 0; i < 16 && cpu === null; i++) {
-            const type = readText(`/sys/class/thermal/thermal_zone${i}/type`);
-            if (type !== null && pattern.test(type))
-                cpu = `/sys/class/thermal/thermal_zone${i}/temp`;
-        }
-    }
+        readTextsAsync(labels, cancellable, labelTexts => {
+            const label = path => (labelTexts[labels.indexOf(path)] ?? '').trim();
+            const firstNamed = wantedNames => {
+                for (const wanted of wantedNames) {
+                    for (const m of monitors) {
+                        if (m.name === wanted && exists(`${m.dir}/temp1_input`))
+                            return `${m.dir}/temp1_input`;
+                    }
+                }
+                return null;
+            };
 
-    return {
-        cpu,
-        gpu: firstNamed(['amdgpu', 'radeon', 'nouveau', 'nvidia', 'xe', 'i915']),
-        disk: firstNamed(['nvme', 'drivetemp']),
-        // Every fan input of every chip: on desktop boards the processor fan is often fan2 or
-        // higher. Each is {path, priority, label, number, graphics}; see fanPriority().
-        fans: monitors.flatMap(m => {
-            const found = [];
-            for (let i = 1; i <= FAN_INPUTS_MAX; i++) {
-                const path = `${m.dir}/fan${i}_input`;
-                if (exists(path)) {
-                    const label = (readText(`${m.dir}/fan${i}_label`) ?? '').trim();
-                    const priority = fanPriority(label, m.name);
-                    found.push({path, priority, label, number: i, graphics: priority === 0});
+            let cpu = null;
+            if (amd) {
+                cpu = `${amd.dir}/temp1_input`;
+                for (let i = 2; i <= 4; i++) {
+                    if (label(`${amd.dir}/temp${i}_label`) === 'Tdie')
+                        cpu = `${amd.dir}/temp${i}_input`;
                 }
             }
-            return found;
-        }),
-    };
+            cpu ??= firstNamed(['coretemp', 'cpu_thermal', 'cpu-thermal', 'soc_thermal', 'thinkpad', 'acpitz']);
+            for (const pattern of [/x86_pkg_temp|cpu|soc/i, /acpitz/i]) {
+                for (const {zone, type} of zoneTypes) {
+                    if (cpu === null && type !== null && pattern.test(type))
+                        cpu = `${zone}/temp`;
+                }
+            }
+
+            callback({
+                cpu,
+                gpu: firstNamed(GPU_HWMON),
+                disk: firstNamed(['nvme', 'drivetemp']),
+                // Each fan is {path, priority, label, number, graphics}; see fanPriority().
+                fans: fanInputs.map(f => {
+                    const dir = f.monitor.dir;
+                    const text = label(`${dir}/fan${f.number}_label`);
+                    const priority = fanPriority(text, f.monitor.name);
+                    return {path: `${dir}/fan${f.number}_input`, priority, label: text, number: f.number, graphics: priority === 0};
+                }),
+            });
+        });
+    });
 }
 
 /** Remembers the previous CPU and network counters and turns them into rates. */
@@ -219,40 +246,44 @@ class Sampler {
         this._cpu = null;
         this._net = null;
         this._physical = new Map();
-        this.cpuCount = countCpus(readText('/proc/stat'));
+        /** Logical CPUs, as counted in the last /proc/stat that was handed in (1 until then). */
+        this.cpuCount = 1;
     }
 
     /**
-     * Share of CPU time spent busy since the previous call (0..1).
+     * Share of CPU time spent busy since the previous call (0..1), from the text of /proc/stat.
      * Returns null for the first call, or when the previous one is older than `maxAge` seconds.
      */
-    cpu(maxAge) {
+    cpu(text, maxAge) {
         const now = monotonicSeconds();
         const prev = this._cpu;
         // Asked again too soon (a settings change, the menu opening): keep the old baseline.
         if (prev !== null && now - prev.time < SAMPLE_MIN_WINDOW_S)
             return null;
-        const times = parseCpuTimes(readText('/proc/stat'));
+        const times = parseCpuTimes(text);
         if (times === null)
             return null;
+        this.cpuCount = countCpus(text);
         this._cpu = {idle: times.idle, total: times.total, time: now};
         if (prev === null || now - prev.time > maxAge || times.total <= prev.total)
             return null;
         return clamp(1 - (times.idle - prev.idle) / (times.total - prev.total), 0, 1);
     }
 
-    /** {total, available, swapTotal, swapFree} in KiB, or null. */
-    memory() {
-        return parseMeminfo(readText('/proc/meminfo'));
+    /** {total, available, swapTotal, swapFree} in KiB, from the text of /proc/meminfo; or null. */
+    memory(text) {
+        return parseMeminfo(text);
     }
 
-    /** {down, up} in bytes per second since the previous call; null as for cpu(). */
-    network(maxAge) {
+    /**
+     * {down, up} in bytes per second since the previous call, from the text of /proc/net/dev;
+     * null as for cpu().
+     */
+    network(text, maxAge) {
         const now = monotonicSeconds();
         const prev = this._net;
         if (prev !== null && now - prev.time < SAMPLE_MIN_WINDOW_S)
             return null;
-        const text = readText('/proc/net/dev');
         let counters = parseNetDev(text, name => this._isPhysical(name));
         // No real network card at all (a VM or container): count everything except loopback.
         const everything = counters !== null && counters.interfaces === 0;
@@ -288,20 +319,20 @@ class Sampler {
 }
 
 /**
- * Finds the busiest processes without ever blocking the compositor: the directory listing runs on
- * a worker thread and the per-process reads are spread over idle slices of the main loop.
+ * Finds the busiest processes without ever blocking the compositor: the directory listing and
+ * the per-process files are read on worker threads, a slice of processes at a time.
  *
- * `onResult(list)` gets up to TOP_PROCESSES entries {name, share} (share of all CPUs, 0..1),
- * or null when there is no earlier scan to compare with yet.
+ * `cpuCount()` says how many logical CPUs there are. `onResult(list)` gets up to TOP_PROCESSES
+ * entries {name, share} (share of all CPUs, 0..1), or null when there is no earlier scan to
+ * compare with yet.
  */
 class ProcScanner {
     constructor(cpuCount, onResult) {
-        this._cpuCount = Math.max(1, cpuCount);
+        this._cpuCount = cpuCount;
         this._onResult = onResult;
         this._prev = null;
         this._prevTime = 0;
         this._cancellable = null;
-        this._idleId = 0;
     }
 
     get busy() {
@@ -336,10 +367,6 @@ class ProcScanner {
         if (this._cancellable !== null)
             this._cancellable.cancel();
         this._cancellable = null;
-        if (this._idleId) {
-            GLib.source_remove(this._idleId);
-            this._idleId = 0;
-        }
     }
 
     _done(cancellable) {
@@ -368,33 +395,33 @@ class ProcScanner {
                 this._collect(source, pids, cancellable);
                 return;
             }
-            try {
-                source.close(null);
-            } catch (e) {
-                // nothing to clean up if the directory handle is already gone
-            }
+            source.close_async(GLib.PRIORITY_LOW, null, ignoreAnswer);
             this._readSlices(pids, cancellable);
         });
     }
 
+    // One slice of processes after another: each slice is read at once, on worker threads, and
+    // the next one starts when it is back. Nothing goes on once `cancellable` is cancelled.
     _readSlices(pids, cancellable) {
         const current = new Map();
         const time = monotonicSeconds();
-        let index = 0;
-        this._idleId = GLib.idle_add(GLib.PRIORITY_LOW, () => {
-            const end = Math.min(pids.length, index + PROC_SLICE);
-            for (; index < end; index++) {
-                const stat = parseProcStat(readText(`/proc/${pids[index]}/stat`));
-                if (stat !== null)
-                    current.set(pids[index], stat);
+        const readFrom = start => {
+            if (start >= pids.length) {
+                this._done(cancellable);
+                this._finish(current, time);
+                return;
             }
-            if (index < pids.length)
-                return GLib.SOURCE_CONTINUE;
-            this._idleId = 0;
-            this._done(cancellable);
-            this._finish(current, time);
-            return GLib.SOURCE_REMOVE;
-        });
+            const slice = pids.slice(start, start + PROC_SLICE);
+            readTextsAsync(slice.map(pid => `/proc/${pid}/stat`), cancellable, texts => {
+                texts.forEach((text, i) => {
+                    const stat = parseProcStat(text);
+                    if (stat !== null)
+                        current.set(slice[i], stat);
+                });
+                readFrom(start + PROC_SLICE);
+            });
+        };
+        readFrom(0);
     }
 
     _finish(current, time) {
@@ -416,7 +443,7 @@ class ProcScanner {
             if (ticks > 0)
                 byName.set(stat.name, (byName.get(stat.name) ?? 0) + ticks);
         }
-        const scale = 1 / (USER_HZ * seconds * this._cpuCount);
+        const scale = 1 / (USER_HZ * seconds * Math.max(1, this._cpuCount()));
         const list = [];
         for (const [name, ticks] of byName)
             list.push({name, share: Math.min(1, ticks * scale)});

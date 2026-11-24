@@ -83,16 +83,10 @@ class PlayerWatch {
         });
     }
 
-    /** Ask a player to bring its own window forward. Players may ignore this. */
+    /** Ask a player to bring its own window forward. Players may ignore this, or not know how. */
     raise(busName) {
         this._bus.call(busName, MPRIS_PATH, MPRIS_ROOT, 'Raise', null, null,
-            Gio.DBusCallFlags.NONE, PLAYER_TIMEOUT_MS, this._cancellable, (bus, result) => {
-                try {
-                    bus.call_finish(result);
-                } catch (e) {
-                    // not supported by this player, or it just left
-                }
-            });
+            Gio.DBusCallFlags.NONE, PLAYER_TIMEOUT_MS, this._cancellable, ignoreAnswer);
     }
 
     _getAll(busName, iface, callback) {
@@ -122,14 +116,7 @@ class PlayerWatch {
 
     // Players also announce track changes, volume and so on; only PlaybackStatus matters here.
     _onProperties(params) {
-        let relevant = true;
-        try {
-            relevant = params.get_child_value(1).lookup_value('PlaybackStatus', null) !== null ||
-                params.get_child_value(2).deep_unpack().includes('PlaybackStatus');
-        } catch (e) {
-            // an oddly shaped signal: just ask the players
-        }
-        if (relevant)
+        if (changedProperty(params, 'PlaybackStatus') !== null)
             this._schedule();
     }
 

@@ -38,20 +38,15 @@ class ScreenWatch {
         this._cancellable.cancel();
     }
 
-    // The signal carries (interface, {changed properties}, [properties to ask for again]). This
-    // interface has other properties too; only PowerSaveMode matters here.
+    // This interface has other properties too; only PowerSaveMode matters here.
     _onProperties(params) {
-        let value = null, ask = false;
-        try {
-            value = params.get_child_value(1).lookup_value('PowerSaveMode', null);
-            ask = value === null && params.get_child_value(2).deep_unpack().includes('PowerSaveMode');
-        } catch (e) {
-            ask = true;                          // an oddly shaped signal: ask instead
-        }
-        if (value !== null && value.is_of_type(new GLib.VariantType('i')))
+        const value = changedProperty(params, 'PowerSaveMode');
+        if (value === null)
+            return;
+        if (value !== undefined && value.get_type_string() === 'i')
             this._set(value.get_int32());
-        else if (value !== null || ask)
-            this._ask();
+        else
+            this._ask();                         // changed, but the signal does not say to what
     }
 
     _ask() {

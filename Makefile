@@ -1,11 +1,12 @@
 # Tempo: developer shortcuts. Run "make help" for the list.
 UUID := tempo@saikatnjm.github.io
 
-.PHONY: help build zip install uninstall test smoke bench pot clean
+.PHONY: help build zip ego install uninstall test smoke bench pot clean
 
 help:
 	@echo "make build      build both variants into build/"
 	@echo "make zip        build installable zips into dist/"
+	@echo "make ego        build the zips for extensions.gnome.org into dist/ego/"
 	@echo "make install    install for this user (matches your GNOME Shell version)"
 	@echo "make uninstall  remove it again"
 	@echo "make test       unit tests (plain gjs, no desktop needed)"
@@ -19,6 +20,9 @@ build:
 
 zip:
 	@tools/build.sh zip
+
+ego:
+	@tools/build.sh ego
 
 install:
 	@tools/install.sh
@@ -41,7 +45,7 @@ bench:
 pot:
 	@mkdir -p po
 	@xgettext --from-code=UTF-8 --language=JavaScript --keyword=_ --package-name=Tempo \
-		--package-version="$$(cat VERSION)" -o po/tempo.pot src/core/*.js src/prefs/prefs-core.js
+		--package-version="$$(cat VERSION)" -o po/tempo.pot src/core/*.js src/prefs/prefs-core.js src/prefs/fan-*.js
 	@echo "Wrote po/tempo.pot"
 
 clean:
